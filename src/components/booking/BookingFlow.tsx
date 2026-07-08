@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useI18n } from "../LanguageProvider";
 import { intlLocale, type Locale } from "@/lib/i18n";
 import { DateTimeField, SelectField } from "../SearchFields";
-import { CarMark, Check, Shield, Pin, Calendar } from "../icons";
+import { Check, Shield, Pin, Calendar } from "../icons";
 import { supabase } from "@/lib/supabaseClient";
 import type { Vehicle } from "@/lib/data";
 import { tText, tList } from "@/lib/i18nContent";
 import { countryOptions } from "@/lib/countries";
+import { CompactVehicleCard, VehicleSheet } from "./VehicleSheet";
 import {
   daysBetween, quote, combineDateTime, splitDateTime, yen, rentalTimes as times, defaultTripDates, addDaysISO,
   type BookingInsurance, type BookingRatePlan, type BookingExtra, type BookingBranch, type ExtraSelection,
@@ -69,6 +70,7 @@ export function BookingFlow({
 
   const [driver, setDriver] = useState({ name: "", email: "", phone: "", license: "", flight: "", notes: "" });
   const [step, setStep] = useState(0);
+  const [showVehicle, setShowVehicle] = useState(false);
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -93,11 +95,15 @@ export function BookingFlow({
     setExtraQty((s) => ({ ...s, [id]: Math.min(max, Math.max(0, qty)) }));
   }
 
+  function goToStep(s: number) {
+    setStep(s);
+    window.scrollTo({ top: 0 }); // each step starts from its beginning (html has smooth scroll)
+  }
   function next() {
     if (step === 1 && !detailsValid) { setTouched(true); return; }
-    setStep((s) => Math.min(2, s + 1));
+    goToStep(Math.min(2, step + 1));
   }
-  function back() { setStep((s) => Math.max(0, s - 1)); }
+  function back() { goToStep(Math.max(0, step - 1)); }
 
   async function submit() {
     setSubmitting(true);
@@ -122,7 +128,7 @@ export function BookingFlow({
     if (err) { setError(t.booking.errorCreate); return; }
     const rows = data as { reference: string }[] | null;
     setReference(rows?.[0]?.reference ?? "—");
-    setStep(3);
+    goToStep(3);
   }
 
   if (step === 3 && reference) return <SuccessView reference={reference} />;
@@ -159,10 +165,14 @@ export function BookingFlow({
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_330px]">
         <div className="min-w-0">
+          {/* on smaller screens the aside sits below the flow, so keep the car
+              reviewable at the top of every step */}
+          <div className="mb-10 lg:hidden">
+            <CompactVehicleCard vehicle={vehicle} onDetails={() => setShowVehicle(true)} />
+          </div>
+
           {step === 0 && (
             <div className="space-y-10">
-              <VehicleCard vehicle={vehicle} t={t} locale={locale} />
-
               <div>
                 <h2 className={`mb-3 ${label11}`}>{t.booking.editTrip}</h2>
                 <div className="rounded-[18px] border border-hairline bg-surface">
@@ -412,11 +422,16 @@ export function BookingFlow({
           </div>
         </div>
 
-        {/* summary — outlined card, per the handoff */}
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        {/* vehicle + summary — reviewable on every step */}
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <div className="hidden lg:block">
+            <CompactVehicleCard vehicle={vehicle} onDetails={() => setShowVehicle(true)} />
+          </div>
           <SummaryCard q={q} selectedIns={selectedIns} t={t} locale={locale} />
         </aside>
       </div>
+
+      {showVehicle && <VehicleSheet vehicle={vehicle} onClose={() => setShowVehicle(false)} />}
     </section>
   );
 }
@@ -470,26 +485,6 @@ function RequiredDocs({ t, className = "" }: { t: ReturnType<typeof useI18n>["t"
         <DocItem>{d.unionPay}</DocItem>
         <DocItem>{d.cash}</DocItem>
       </ul>
-    </div>
-  );
-}
-
-function VehicleCard({ vehicle, t, locale }: { vehicle: Vehicle; t: ReturnType<typeof useI18n>["t"]; locale: Locale }) {
-  const spec = [t.classes[vehicle.cls], `${vehicle.seats} ${t.fleet.seats}`, vehicle.transmission, tText(vehicle.fuel, vehicle.i18n?.fuel, locale)].join(" · ");
-  return (
-    <div className="flex items-center gap-4 rounded-[18px] border border-hairline bg-surface p-4">
-      {vehicle.images?.[0] ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={vehicle.images[0]} alt={vehicle.name} className="h-16 w-24 shrink-0 rounded-[10px] object-cover" />
-      ) : (
-        <span className="grid h-16 w-24 shrink-0 place-items-center rounded-[10px] bg-raised">
-          <CarMark cls={vehicle.cls} hue={vehicle.hue} className="h-12 w-20" />
-        </span>
-      )}
-      <div className="min-w-0">
-        <h3 className="font-display text-[1.125rem] leading-tight text-ink">{vehicle.name}</h3>
-        <p className="mt-1 truncate text-[0.78rem] font-light text-muted">{spec}</p>
-      </div>
     </div>
   );
 }

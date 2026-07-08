@@ -41,7 +41,7 @@ export type Dict = {
     note: string;
   };
   trust: { support: string; supportD: string; cancel: string; cancelD: string; insure: string; insureD: string; etc: string; etcD: string };
-  fleet: { eyebrow: string; title: string; sub: string; from: string; perDay: string; seats: string; bags: string; reserve: string; all: string; filterAll: string };
+  fleet: { eyebrow: string; title: string; sub: string; from: string; perDay: string; seats: string; bags: string; transmission: string; fuelLabel: string; reserve: string; all: string; filterAll: string };
   classes: Record<string, string>;
   steps: { eyebrow: string; title: string; items: { t: string; d: string }[] };
   dest: { eyebrow: string; title: string; sub: string; fromOsaka: string; drive: string };
@@ -50,7 +50,7 @@ export type Dict = {
     heading: string;
     steps: { trip: string; details: string; confirm: string };
     back: string; next: string; reserve: string; reserving: string;
-    editTrip: string; protection: string; extrasTitle: string; included: string; perDay: string;
+    editTrip: string; protection: string; extrasTitle: string; included: string; perDay: string; vehicleInfo: string; viewVehicle: string;
     summary: { heading: string; vehicle: string; pickup: string; dropoff: string; duration: string; days: string; base: string; discount: string; protection: string; total: string; payAtPickup: string };
     form: { heading: string; fullName: string; email: string; phone: string; license: string; licensePh: string; flight: string; flightHint: string; notes: string; notesHint: string; required: string; optional: string };
     confirm: { heading: string; note: string };
@@ -92,7 +92,7 @@ export const dict: Record<Locale, Dict> = {
       insure: "Full insurance", insureD: "CDW included, zero-excess available",
       etc: "ETC toll card", etcD: "Tap through every expressway gate",
     },
-    fleet: { eyebrow: "The fleet", title: "Pick the car for your route", sub: "Every car is automatic, non-smoking, and fitted with English navigation and an ETC toll card.", from: "from", perDay: "/ day", seats: "seats", bags: "bags", reserve: "Reserve", all: "View full fleet", filterAll: "All" },
+    fleet: { eyebrow: "The fleet", title: "Pick the car for your route", sub: "Every car is automatic, non-smoking, and fitted with English navigation and an ETC toll card.", from: "from", perDay: "/ day", seats: "seats", bags: "bags", transmission: "Transmission", fuelLabel: "Fuel", reserve: "Reserve", all: "View full fleet", filterAll: "All" },
     classes: { kei: "Kei — micro", compact: "Compact", hybrid: "Hybrid", suv: "SUV", minivan: "Minivan", premium: "Premium" },
     steps: {
       eyebrow: "How it works",
@@ -109,7 +109,7 @@ export const dict: Record<Locale, Dict> = {
       heading: "Reserve your car",
       steps: { trip: "Trip & protection", details: "Your details", confirm: "Confirm" },
       back: "Back", next: "Continue", reserve: "Confirm reservation", reserving: "Reserving…",
-      editTrip: "Pick-up & return", protection: "Choose your protection", extrasTitle: "Options & extras", included: "Included", perDay: "/ day",
+      editTrip: "Pick-up & return", protection: "Choose your protection", extrasTitle: "Options & extras", included: "Included", perDay: "/ day", vehicleInfo: "Vehicle details", viewVehicle: "Details",
       summary: { heading: "Summary", vehicle: "Vehicle", pickup: "Pick-up", dropoff: "Return", duration: "Duration", days: "days", base: "Base rate", discount: "Plan discount", protection: "Protection", total: "Estimated total", payAtPickup: "Pay at pick-up" },
       form: { heading: "Driver details", fullName: "Full name", email: "Email", phone: "Phone", license: "Driver's licence issuing country/region", licensePh: "Select country/region", flight: "Flight no.", flightHint: "Optional — helps us if your flight is delayed", notes: "Notes", notesHint: "Optional — child seat, special requests…", required: "Please fill in this field.", optional: "optional" },
       confirm: { heading: "Review & confirm", note: "No payment now — you pay at the counter on pick-up. Bring your passport and a valid driving licence (with an International Driving Permit if required)." },
@@ -138,9 +138,9 @@ export const dict: Record<Locale, Dict> = {
     nav: { fleet: "車種", plans: "保険", how: "ご利用の流れ", destinations: "行き先", support: "サポート", reserve: "予約する" },
     hero: {
       eyebrow: "レンタカー · 大阪",
-      title1: "大阪で借りて、",
+      title1: "大阪から、",
       title2: "関西を自由にドライブ。",
-      subtitle: "大阪市内の店舗で受け取り、京都・奈良・神戸へ。英語対応、保険完備、お支払いは受け取り時に。",
+      subtitle: "大阪市内の店舗で受け取り、京都・奈良・神戸へ。保険完備、お支払いは受け取り時に。",
     },
     search: {
       pickup: "出発",
@@ -159,7 +159,7 @@ export const dict: Record<Locale, Dict> = {
       insure: "保険完備", insureD: "CDW標準、免責ゼロも選べる",
       etc: "ETCカード", etcD: "高速ゲートをそのまま通過",
     },
-    fleet: { eyebrow: "車種一覧", title: "あなたのルートに合う一台を", sub: "全車AT・禁煙、英語ナビとETCカードを搭載。", from: "", perDay: "/ 日", seats: "人乗り", bags: "荷物", reserve: "予約", all: "すべての車種を見る", filterAll: "すべて" },
+    fleet: { eyebrow: "車種一覧", title: "あなたのルートに合う一台を", sub: "全車AT・禁煙、英語ナビとETCカードを搭載。", from: "", perDay: "/ 日", seats: "人乗り", bags: "荷物", transmission: "ミッション", fuelLabel: "燃料", reserve: "予約", all: "すべての車種を見る", filterAll: "すべて" },
     classes: { kei: "軽自動車", compact: "コンパクト", hybrid: "ハイブリッド", suv: "SUV", minivan: "ミニバン", premium: "プレミアム" },
     steps: {
       eyebrow: "ご利用の流れ",
@@ -176,7 +176,7 @@ export const dict: Record<Locale, Dict> = {
       heading: "予約する",
       steps: { trip: "プランと補償", details: "お客様情報", confirm: "確認" },
       back: "戻る", next: "次へ", reserve: "予約を確定", reserving: "予約中…",
-      editTrip: "出発・返却", protection: "補償を選ぶ", extrasTitle: "オプション", included: "標準装備", perDay: "/ 日",
+      editTrip: "出発・返却", protection: "補償を選ぶ", extrasTitle: "オプション", included: "標準装備", perDay: "/ 日", vehicleInfo: "車両の詳細", viewVehicle: "詳細",
       summary: { heading: "ご予約内容", vehicle: "車種", pickup: "出発", dropoff: "返却", duration: "期間", days: "日間", base: "基本料金", discount: "割引", protection: "補償", total: "合計（目安）", payAtPickup: "現地払い" },
       form: { heading: "運転者情報", fullName: "氏名", email: "メール", phone: "電話番号", license: "運転免許証の発行国・地域", licensePh: "国・地域を選択", flight: "便名", flightHint: "任意 — 遅延時に対応しやすくなります", notes: "備考", notesHint: "任意 — チャイルドシート、ご要望など", required: "この項目を入力してください。", optional: "任意" },
       confirm: { heading: "内容の確認", note: "今のお支払いはありません。お受け取り時にカウンターでお支払いください。パスポートと有効な運転免許証（必要に応じて国際運転免許証）をお持ちください。" },
@@ -226,7 +226,7 @@ export const dict: Record<Locale, Dict> = {
       insure: "保险齐全", insureD: "含CDW，可选零自付额",
       etc: "ETC通行卡", etcD: "高速收费站一刷即过",
     },
-    fleet: { eyebrow: "车队", title: "为你的路线选一辆车", sub: "全部为自动挡、无烟车，配备英文导航与ETC通行卡。", from: "起", perDay: "/ 天", seats: "座", bags: "行李", reserve: "预订", all: "查看全部车型", filterAll: "全部" },
+    fleet: { eyebrow: "车队", title: "为你的路线选一辆车", sub: "全部为自动挡、无烟车，配备英文导航与ETC通行卡。", from: "起", perDay: "/ 天", seats: "座", bags: "行李", transmission: "变速箱", fuelLabel: "燃料", reserve: "预订", all: "查看全部车型", filterAll: "全部" },
     classes: { kei: "K-Car 微型", compact: "紧凑型", hybrid: "混动", suv: "SUV", minivan: "MPV", premium: "豪华" },
     steps: {
       eyebrow: "租车流程",
@@ -243,7 +243,7 @@ export const dict: Record<Locale, Dict> = {
       heading: "预订车辆",
       steps: { trip: "行程与保障", details: "您的信息", confirm: "确认" },
       back: "返回", next: "继续", reserve: "确认预订", reserving: "预订中…",
-      editTrip: "取车与还车", protection: "选择保障", extrasTitle: "附加选项", included: "已包含", perDay: "/ 天",
+      editTrip: "取车与还车", protection: "选择保障", extrasTitle: "附加选项", included: "已包含", perDay: "/ 天", vehicleInfo: "车辆详情", viewVehicle: "详情",
       summary: { heading: "预订摘要", vehicle: "车型", pickup: "取车", dropoff: "还车", duration: "时长", days: "天", base: "基本租金", discount: "套餐折扣", protection: "保障", total: "预计总额", payAtPickup: "到店付款" },
       form: { heading: "驾驶人信息", fullName: "姓名", email: "邮箱", phone: "电话", license: "驾照签发国家/地区", licensePh: "选择国家/地区", flight: "航班号", flightHint: "选填 — 航班延误时便于我们安排", notes: "备注", notesHint: "选填 — 儿童座椅、特殊要求…", required: "请填写此项。", optional: "选填" },
       confirm: { heading: "核对并确认", note: "现在无需付款 — 取车时在柜台付款。请携带护照和有效驾照（如需要请带国际驾照）。" },
@@ -293,7 +293,7 @@ export const dict: Record<Locale, Dict> = {
       insure: "보험 완비", insureD: "CDW 포함, 자기부담금 0 선택 가능",
       etc: "ETC 통행 카드", etcD: "고속도로 게이트를 그대로 통과",
     },
-    fleet: { eyebrow: "차량", title: "당신의 경로에 맞는 차를", sub: "전 차량 자동·금연이며 영어 내비와 ETC 카드를 갖췄습니다.", from: "부터", perDay: "/ 일", seats: "인승", bags: "수하물", reserve: "예약", all: "전체 차종 보기", filterAll: "전체" },
+    fleet: { eyebrow: "차량", title: "당신의 경로에 맞는 차를", sub: "전 차량 자동·금연이며 영어 내비와 ETC 카드를 갖췄습니다.", from: "부터", perDay: "/ 일", seats: "인승", bags: "수하물", transmission: "변속기", fuelLabel: "연료", reserve: "예약", all: "전체 차종 보기", filterAll: "전체" },
     classes: { kei: "경차", compact: "콤팩트", hybrid: "하이브리드", suv: "SUV", minivan: "미니밴", premium: "프리미엄" },
     steps: {
       eyebrow: "이용 방법",
@@ -310,7 +310,7 @@ export const dict: Record<Locale, Dict> = {
       heading: "차량 예약",
       steps: { trip: "일정 및 보장", details: "고객 정보", confirm: "확인" },
       back: "뒤로", next: "계속", reserve: "예약 확정", reserving: "예약 중…",
-      editTrip: "픽업 · 반납", protection: "보장 선택", extrasTitle: "옵션 추가", included: "포함", perDay: "/ 일",
+      editTrip: "픽업 · 반납", protection: "보장 선택", extrasTitle: "옵션 추가", included: "포함", perDay: "/ 일", vehicleInfo: "차량 정보", viewVehicle: "상세",
       summary: { heading: "예약 요약", vehicle: "차종", pickup: "픽업", dropoff: "반납", duration: "기간", days: "일", base: "기본 요금", discount: "플랜 할인", protection: "보장", total: "예상 합계", payAtPickup: "현장 결제" },
       form: { heading: "운전자 정보", fullName: "이름", email: "이메일", phone: "전화번호", license: "운전면허 발급 국가/지역", licensePh: "국가/지역 선택", flight: "항공편", flightHint: "선택 — 항공편 지연 시 도움이 됩니다", notes: "메모", notesHint: "선택 — 카시트, 특별 요청 등", required: "이 항목을 입력해 주세요.", optional: "선택" },
       confirm: { heading: "검토 및 확인", note: "지금은 결제하지 않습니다 — 픽업 시 카운터에서 결제합니다. 여권과 유효한 운전면허증(필요 시 국제운전면허증)을 지참하세요." },
