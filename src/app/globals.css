@@ -1,26 +1,210 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   P-RIDEON — minimalist-luxury design tokens
+   From the P-Rideon design handoff: champagne-gold accent on
+   green-tinted charcoal (dark) / green-tinted ivory (light).
+   Marcellus for display, Jost for UI. Hairline borders,
+   18/14/12 radii, generous letterspaced uppercase labels.
+   ============================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --pr-bg: oklch(0.972 0.005 168);
+  --pr-surface: oklch(0.996 0.002 168);
+  --pr-raised: oklch(0.942 0.007 168);
+  --pr-ink: oklch(0.24 0.02 178);
+  --pr-muted: oklch(0.5 0.018 172);
+  --pr-hairline: rgba(0, 0, 0, 0.09);
+  --pr-accent: #8e7845;
+  --pr-accent-ink: #f6f2e8;
+  --pr-accent-strong: #6f5d36;
+  /* logo shadow-glyph: champagne, deeper on light for contrast */
+  --pr-logo-shadow: rgba(178, 154, 99, 0.55);
+  --pr-shadow-card: 0 18px 40px rgba(24, 44, 38, 0.12);
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --pr-bg: oklch(0.165 0.014 180);
+    --pr-surface: oklch(0.205 0.016 180);
+    --pr-raised: oklch(0.25 0.018 178);
+    --pr-ink: oklch(0.96 0.004 170);
+    --pr-muted: oklch(0.7 0.014 172);
+    --pr-hairline: rgba(255, 255, 255, 0.1);
+    --pr-accent: #b29a63;
+    --pr-accent-ink: #161d1a;
+    --pr-accent-strong: #d6bf85;
+    --pr-logo-shadow: rgba(255, 221, 142, 0.38);
+    --pr-shadow-card: 0 18px 40px oklch(0.1 0.01 180 / 0.45);
+    color-scheme: dark;
   }
 }
 
+/* Scoped theme pins. Sections opt into a fixed palette regardless of
+   system preference (hero band is always dark; admin is always light). */
+.theme-dark {
+  --pr-bg: oklch(0.165 0.014 180);
+  --pr-surface: oklch(0.205 0.016 180);
+  --pr-raised: oklch(0.25 0.018 178);
+  --pr-ink: oklch(0.96 0.004 170);
+  --pr-muted: oklch(0.7 0.014 172);
+  --pr-hairline: rgba(255, 255, 255, 0.1);
+  --pr-accent: #b29a63;
+  --pr-accent-ink: #161d1a;
+  --pr-accent-strong: #d6bf85;
+  --pr-logo-shadow: rgba(255, 221, 142, 0.38);
+  --pr-shadow-card: 0 18px 40px oklch(0.1 0.01 180 / 0.45);
+  color-scheme: dark;
+}
+.theme-light {
+  --pr-bg: oklch(0.972 0.005 168);
+  --pr-surface: oklch(0.996 0.002 168);
+  --pr-raised: oklch(0.942 0.007 168);
+  --pr-ink: oklch(0.24 0.02 178);
+  --pr-muted: oklch(0.5 0.018 172);
+  --pr-hairline: rgba(0, 0, 0, 0.09);
+  --pr-accent: #8e7845;
+  --pr-accent-ink: #f6f2e8;
+  --pr-accent-strong: #6f5d36;
+  --pr-logo-shadow: rgba(178, 154, 99, 0.55);
+  --pr-shadow-card: 0 18px 40px rgba(24, 44, 38, 0.12);
+  color-scheme: light;
+}
+
+@theme inline {
+  /* semantic palette */
+  --color-bg: var(--pr-bg);
+  --color-surface: var(--pr-surface);
+  --color-raised: var(--pr-raised);
+  --color-ink: var(--pr-ink);
+  --color-muted: var(--pr-muted);
+  --color-hairline: var(--pr-hairline);
+  --color-accent: var(--pr-accent);
+  --color-accent-deep: var(--pr-accent-strong);
+  --color-accent-bright: #d6bf85;
+  --color-accent-ink: var(--pr-accent-ink);
+  --color-champagne: #b29a63;
+
+  /* legacy aliases (admin panel still uses the old token names) */
+  --color-paper: var(--pr-surface);
+  --color-paper-dim: var(--pr-raised);
+  --color-mist: var(--pr-hairline);
+  --color-stone: var(--pr-muted);
+  --color-ink-soft: var(--pr-muted);
+  --color-expressway: #8e7845;
+  --color-expressway-bright: #b29a63;
+  --color-signal: #b0483a;
+  --color-gold: #b29a63;
+
+  --font-display: var(--font-marcellus), "Yu Mincho", "Hiragino Mincho ProN", "Songti SC", "Batang", serif;
+  --font-body: var(--font-jost), var(--font-zen), "Noto Sans JP", system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+
+  --radius-card: 18px;
+  --radius-btn: 14px;
+  --radius-inner: 12px;
+  --radius-board: 18px;
+
+  --shadow-card: var(--pr-shadow-card);
+  --shadow-board: var(--pr-shadow-card);
+}
+
+:root {
+  --background: var(--pr-bg);
+  --foreground: var(--pr-ink);
+}
+
+* {
+  border-color: var(--pr-hairline);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--pr-bg);
+  color: var(--pr-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(178, 154, 99, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* --- P-Rideon utilities --------------------------------------- */
+
+/* Letterspaced uppercase label — the handoff's signature label style */
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+/* Tabular figures for prices, dates, references */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Standard surface card */
+.card {
+  background: var(--pr-surface);
+  border: 1px solid var(--pr-hairline);
+  border-radius: 18px;
+}
+
+/* Legacy `.guide-board` (admin trip editor) → quiet surface card */
+.guide-board {
+  background: var(--pr-surface);
+  border: 1px solid var(--pr-hairline);
+  border-radius: 18px;
+}
+
+/* Legacy decorative helpers, kept inert-quiet for admin screens */
+.contours {
+  background-image: radial-gradient(120% 90% at 80% -10%, rgba(178, 154, 99, 0.06), transparent 60%);
+}
+.roadline {
+  height: 1px;
+  background: var(--pr-hairline);
+}
+.route-flow {
+  stroke-dasharray: 10 14;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.rise-2 { animation-delay: 0.08s; }
+.rise-3 { animation-delay: 0.16s; }
+.rise-4 { animation-delay: 0.24s; }
+
+/* Hide scrollbars on horizontal scrollers (chips, fleet carousel) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Focus visibility (accessibility floor) */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }

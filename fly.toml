@@ -1,0 +1,28 @@
+# fly.toml app configuration file generated for drive-one on 2026-06-30T15:37:32+09:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'drive-one'
+primary_region = 'nrt'
+
+[build]
+  # NEXT_PUBLIC_* are inlined into the bundle at BUILD time (not read at runtime),
+  # so they must be passed as Docker build args here — NOT via `fly secrets`.
+  # These values are publishable (the anon key ships in the browser anyway).
+  [build.args]
+    NEXT_PUBLIC_SUPABASE_URL = "https://vtvxgzlkelychcjvvkwz.supabase.co"
+    NEXT_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable_ALySlpCC_apKXb_7cEP3-A_UFv8BfJt"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'
+  cpus = 1
+  memory_mb = 512
