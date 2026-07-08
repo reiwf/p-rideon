@@ -59,7 +59,8 @@ export type AdminDict = {
   };
   bookings: {
     title: string; sub: string; empty: string; emptyBody: string;
-    thRef: string; thCustomer: string; thVehicle: string; thPickup: string; thTotal: string; license: string; extras: string;
+thRef: string; thCustomer: string; thVehicle: string; thPickup: string; thTotal: string; license: string; extras: string;
+    notifyTitle: string; notifyHint: string; notifyPh: string; notifySave: string; notifySaved: string;
     status: { pending: string; confirmed: string; cancelled: string; completed: string };
   };
 tr: {
@@ -119,6 +120,7 @@ export const adminDict: Record<AdminLang, AdminDict> = {
     bookings: {
       title: "Bookings", sub: "Reserve-now requests from customers (pay at pickup). Newest first.", empty: "No bookings yet", emptyBody: "When a tourist completes a reservation on the booking site, it appears here for your staff to confirm.",
       thRef: "Reference", thCustomer: "Customer", thVehicle: "Vehicle", thPickup: "Pick-up", thTotal: "Est. total", license: "Licence", extras: "Extras",
+      notifyTitle: "New-booking notifications", notifyHint: "These addresses receive an email whenever a customer completes a booking. Separate multiple addresses with commas.", notifyPh: "staff@p-rideon.com, manager@p-rideon.com", notifySave: "Save", notifySaved: "Saved.",
       status: { pending: "pending", confirmed: "confirmed", cancelled: "cancelled", completed: "completed" },
     },
     tr: {
@@ -179,6 +181,7 @@ export const adminDict: Record<AdminLang, AdminDict> = {
     bookings: {
       title: "予約", sub: "お客様からの「今すぐ予約」（現地払い）。新しい順。", empty: "予約はまだありません", emptyBody: "お客様が予約サイトで予約を完了すると、ここに表示されスタッフが確認できます。",
       thRef: "予約番号", thCustomer: "お客様", thVehicle: "車両", thPickup: "出発", thTotal: "概算合計", license: "免許", extras: "オプション",
+      notifyTitle: "新規予約の通知", notifyHint: "お客様が予約を完了すると、これらのアドレスに通知メールが届きます。複数の場合はカンマ区切りで入力してください。", notifyPh: "staff@p-rideon.com, manager@p-rideon.com", notifySave: "保存", notifySaved: "保存しました。",
       status: { pending: "保留中", confirmed: "確定", cancelled: "キャンセル", completed: "完了" },
     },
     tr: {

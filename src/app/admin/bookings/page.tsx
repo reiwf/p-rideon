@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAdminData } from "@/lib/adminStore";
 import { useAdminT } from "@/lib/adminI18n";
-import { Badge, PageHeader, yen } from "@/components/admin/ui";
+import { supabase } from "@/lib/supabaseClient";
+import { Badge, Button, PageHeader, inputCls, yen } from "@/components/admin/ui";
 
 function fmt(d: string | null) {
   if (!d) return "—";
@@ -13,6 +15,58 @@ function fmt(d: string | null) {
 const statusTone: Record<string, "ok" | "off" | "neutral" | "star"> = {
   pending: "star", confirmed: "ok", cancelled: "off", completed: "neutral",
 };
+
+/** Staff addresses that get an email on every new booking (car_settings). */
+function NotifySettings() {
+  const { t } = useAdminT();
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    supabase
+      .from("car_settings")
+      .select("value")
+      .eq("key", "booking_notify_emails")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!alive) return;
+        const arr = (data?.value as string[] | null) ?? [];
+        setValue(arr.join(", "));
+      });
+    return () => { alive = false; };
+  }, []);
+
+  async function save() {
+    setBusy(true);
+    setMsg(null);
+    const emails = value.split(/[,;\s]+/).map((s) => s.trim()).filter((s) => /\S+@\S+\.\S+/.test(s));
+    const { error } = await supabase.from("car_settings").upsert({ key: "booking_notify_emails", value: emails });
+    setBusy(false);
+    if (error) { setMsg({ ok: false, text: error.message }); return; }
+    setValue(emails.join(", "));
+    setMsg({ ok: true, text: t.bookings.notifySaved });
+  }
+
+  return (
+    <div className="mb-6 rounded-xl border border-mist bg-white p-4 shadow-[var(--shadow-card)]">
+      <p className="text-[0.9rem] font-semibold text-ink">{t.bookings.notifyTitle}</p>
+      <p className="mt-0.5 text-[0.78rem] text-stone">{t.bookings.notifyHint}</p>
+      <div className="mt-2.5 flex flex-col gap-2 sm:flex-row">
+        <input
+          className={inputCls}
+          value={value}
+          onChange={(e) => { setValue(e.target.value); setMsg(null); }}
+          placeholder={t.bookings.notifyPh}
+          inputMode="email"
+        />
+        <Button onClick={save} disabled={busy} className="shrink-0">{t.bookings.notifySave}</Button>
+      </div>
+      {msg && <p className={`mt-1.5 text-[0.78rem] ${msg.ok ? "text-expressway" : "text-signal"}`}>{msg.text}</p>}
+    </div>
+  );
+}
 
 export default function BookingsPage() {
   const { data } = useAdminData();
@@ -32,6 +86,8 @@ export default function BookingsPage() {
   return (
     <>
       <PageHeader title={t.bookings.title} sub={t.bookings.sub} />
+
+      <NotifySettings />
 
       {bookings.length === 0 ? (
         <div className="grid place-items-center rounded-xl border border-dashed border-mist bg-white px-6 py-16 text-center">
