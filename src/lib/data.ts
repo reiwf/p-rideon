@@ -21,7 +21,9 @@ export type Vehicle = {
   bags: number;
   transmission: "AT" | "MT";
   fuel: string;
-  pricePerDay: number;
+pricePerDay: number;
+  /** extension rate per started hour beyond full 24h days (0/absent = charge a full day) */
+  extensionPerHour?: number;
   tags: string[];
   /** accent hue used for the card silhouette */
   hue: string;
@@ -56,7 +58,7 @@ export const vehicles: Vehicle[] = [
     fuel: "Petrol",
     pricePerDay: 7800,
     tags: ["Popular", "City + day trips"],
-    hue: "#11704a",
+    hue: "#8e7845",
   },
   {
     id: "hybrid-prius",
@@ -69,7 +71,7 @@ export const vehicles: Vehicle[] = [
     fuel: "Hybrid",
     pricePerDay: 9800,
     tags: ["Best on fuel", "Long routes"],
-    hue: "#169360",
+    hue: "#b29a63",
   },
   {
     id: "suv-corollacross",
@@ -82,7 +84,7 @@ export const vehicles: Vehicle[] = [
     fuel: "Hybrid",
     pricePerDay: 12800,
     tags: ["Koyasan & coast", "Higher view"],
-    hue: "#16293c",
+    hue: "#6b5f4e",
   },
   {
     id: "minivan-noah",
@@ -95,7 +97,7 @@ export const vehicles: Vehicle[] = [
     fuel: "Hybrid",
     pricePerDay: 15800,
     tags: ["Families", "8 seats option"],
-    hue: "#11704a",
+    hue: "#8e7845",
   },
   {
     id: "premium-alphard",

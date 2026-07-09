@@ -21,6 +21,7 @@ function emptyVehicle(): AdminVehicle {
     transmission: "AT",
     fuel: "Petrol",
     pricePerDay: 8000,
+    extensionPerHour: 0,
     tags: [],
     hue: classHue.compact,
     active: true,
@@ -219,9 +220,14 @@ function VehicleForm({ value, isNew, onClose, onSave }: { value: AdminVehicle; i
           </Field>
         </div>
 
-        <Field label={t.vehicles.dailyRate} hint={t.vehicles.dailyRateHint}>
-          <input type="number" min={0} step={100} className={inputCls} value={v.pricePerDay} onChange={(e) => set("pricePerDay", +e.target.value)} />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t.vehicles.dailyRate} hint={t.vehicles.dailyRateHint}>
+            <input type="number" min={0} step={100} className={inputCls} value={v.pricePerDay} onChange={(e) => set("pricePerDay", +e.target.value)} />
+          </Field>
+          <Field label={t.vehicles.extHour} hint={t.vehicles.extHourHint}>
+            <input type="number" min={0} step={100} className={inputCls} value={v.extensionPerHour} onChange={(e) => set("extensionPerHour", +e.target.value)} />
+          </Field>
+        </div>
 
         <Field label={t.vehicles.tags} hint={t.vehicles.tagsHint}>
           <input className={inputCls} value={v.tags.join(", ")} onChange={(e) => set("tags", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} placeholder="Popular, City + day trips" />

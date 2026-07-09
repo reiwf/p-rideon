@@ -25,7 +25,8 @@ export type AdminVehicle = {
   bags: number;
   transmission: "AT" | "MT";
   fuel: string;
-  pricePerDay: number;
+pricePerDay: number;
+  extensionPerHour: number;
   tags: string[];
   hue: string;
   active: boolean;
@@ -102,22 +103,22 @@ export type AdminData = {
 export const vehicleClasses: VehicleClass[] = ["kei", "compact", "hybrid", "suv", "minivan", "premium"];
 export const classHue: Record<VehicleClass, string> = {
   kei: "#d8492f",
-  compact: "#11704a",
-  hybrid: "#169360",
-  suv: "#16293c",
-  minivan: "#11704a",
+  compact: "#8e7845",
+  hybrid: "#b29a63",
+  suv: "#6b5f4e",
+  minivan: "#a58a5c",
   premium: "#c79a3e",
 };
 
 // ---- mappers ----
 const vFromDb = (r: DbVehicle): AdminVehicle => ({
   id: r.id, name: r.name, jp: r.jp, cls: r.cls as VehicleClass, seats: r.seats, bags: r.bags,
-  transmission: r.transmission, fuel: r.fuel, pricePerDay: r.price_per_day, tags: r.tags ?? [],
+  transmission: r.transmission, fuel: r.fuel, pricePerDay: r.price_per_day, extensionPerHour: r.extension_per_hour ?? 0, tags: r.tags ?? [],
   hue: r.hue, active: r.active, i18n: r.i18n ?? {}, images: r.images ?? [],
 });
 const vToDb = (v: AdminVehicle) => ({
   name: v.name, jp: v.jp, cls: v.cls, seats: v.seats, bags: v.bags, transmission: v.transmission,
-  fuel: v.fuel, price_per_day: v.pricePerDay, tags: v.tags, hue: v.hue, active: v.active, i18n: v.i18n ?? {}, images: v.images ?? [],
+  fuel: v.fuel, price_per_day: v.pricePerDay, extension_per_hour: v.extensionPerHour, tags: v.tags, hue: v.hue, active: v.active, i18n: v.i18n ?? {}, images: v.images ?? [],
 });
 const pFromDb = (r: DbRatePlan): RatePlan => ({
   id: r.id, name: r.name, description: r.description, minDays: r.min_days, discountPct: r.discount_pct, active: r.active, i18n: r.i18n ?? {},

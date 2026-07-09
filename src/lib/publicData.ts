@@ -10,11 +10,11 @@ function serverClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-const VEHICLE_COLUMNS = "id,name,jp,cls,seats,bags,transmission,fuel,price_per_day,tags,hue,i18n,images";
+const VEHICLE_COLUMNS = "id,name,jp,cls,seats,bags,transmission,fuel,price_per_day,extension_per_hour,tags,hue,i18n,images";
 
 type VehicleRow = {
   id: string; name: string; jp: string; cls: string; seats: number; bags: number;
-  transmission: string; fuel: string; price_per_day: number; tags: string[] | null;
+  transmission: string; fuel: string; price_per_day: number; extension_per_hour: number | null; tags: string[] | null;
   hue: string; i18n: ContentI18n | null; images: string[] | null;
 };
 
@@ -27,7 +27,8 @@ const mapVehicle = (r: VehicleRow): Vehicle => ({
   bags: r.bags,
   transmission: r.transmission as "AT" | "MT",
   fuel: r.fuel,
-  pricePerDay: r.price_per_day,
+pricePerDay: r.price_per_day,
+  extensionPerHour: r.extension_per_hour ?? 0,
   tags: r.tags ?? [],
   hue: r.hue,
   i18n: (r.i18n ?? undefined) as ContentI18n | undefined,

@@ -30,7 +30,7 @@ export type AdminDict = {
     thVehicle: string; thClass: string; thSeats: string; thRate: string; empty: string;
     formAdd: string; formEdit: string; modelName: string; modelPh: string; jpName: string; jpPh: string;
     cls: string; transmission: string; auto: string; manual: string; seats: string; bags: string; fuel: string;
-    dailyRate: string; dailyRateHint: string; tags: string; tagsHint: string; publishedLabel: string;
+    dailyRate: string; dailyRateHint: string; extHour: string; extHourHint: string; tags: string; tagsHint: string; publishedLabel: string;
     saveAdd: string; saveEdit: string; deleteTitle: string; deleteBody: string;
     gallery: string; galleryHint: string; addImages: string; uploading: string; primary: string; makePrimary: string;
     translateAll: string; translatingAll: string; translateDone: string; translateNone: string;
@@ -87,7 +87,7 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       thVehicle: "Vehicle", thClass: "Class", thSeats: "Seats", thRate: "Rate / day", empty: "No vehicles yet. Add your first car to start.",
       formAdd: "Add vehicle", formEdit: "Edit vehicle", modelName: "Model name", modelPh: "Toyota Yaris", jpName: "Japanese name", jpPh: "トヨタ ヤリス",
       cls: "Class", transmission: "Transmission", auto: "Automatic (AT)", manual: "Manual (MT)", seats: "Seats", bags: "Bags", fuel: "Fuel",
-      dailyRate: "Daily rate (JPY)", dailyRateHint: "Base price per day before any rate-plan discount.", tags: "Tags", tagsHint: "Comma-separated highlights shown on the card (e.g. Popular, ETC card).", publishedLabel: "Published — show on the booking site",
+      dailyRate: "Daily rate (JPY)", dailyRateHint: "Base price per day before any rate-plan discount.", extHour: "Hourly extension (JPY)", extHourHint: "Per started hour beyond full 24h days, capped at the daily rate. 0 = charge a full extra day.", tags: "Tags", tagsHint: "Comma-separated highlights shown on the card (e.g. Popular, ETC card).", publishedLabel: "Published — show on the booking site",
       saveAdd: "Add vehicle", saveEdit: "Save changes", deleteTitle: "Delete vehicle", deleteBody: "Remove this vehicle from the fleet? This can't be undone.",
       gallery: "Gallery", galleryHint: "Upload photos shown on the booking site. The first image is the card photo.", addImages: "+ Add images", uploading: "Uploading…", primary: "Primary", makePrimary: "Make primary",
       translateAll: "Auto-translate all", translatingAll: "Translating… {done}/{total}", translateDone: "Translated {n} vehicle(s).", translateNone: "All vehicles already translated.",
@@ -148,7 +148,7 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       thVehicle: "車両", thClass: "クラス", thSeats: "乗車", thRate: "日額", empty: "車両がまだありません。最初の車を追加しましょう。",
       formAdd: "車両を追加", formEdit: "車両を編集", modelName: "車種名", modelPh: "トヨタ ヤリス", jpName: "日本語名", jpPh: "トヨタ ヤリス",
       cls: "クラス", transmission: "ミッション", auto: "オートマ（AT）", manual: "マニュアル（MT）", seats: "乗車人数", bags: "荷物", fuel: "燃料",
-      dailyRate: "日額（円）", dailyRateHint: "料金プランの割引前の1日あたりの基本料金。", tags: "タグ", tagsHint: "カードに表示する特徴（カンマ区切り。例：人気、ETCカード）。", publishedLabel: "公開 — 予約サイトに表示する",
+      dailyRate: "日額（円）", dailyRateHint: "料金プランの割引前の1日あたりの基本料金。", extHour: "延長料金（1時間・円）", extHourHint: "24時間単位を超えた延長1時間ごとの料金（1日料金が上限）。0の場合は1日分を請求します。", tags: "タグ", tagsHint: "カードに表示する特徴（カンマ区切り。例：人気、ETCカード）。", publishedLabel: "公開 — 予約サイトに表示する",
       saveAdd: "車両を追加", saveEdit: "変更を保存", deleteTitle: "車両を削除", deleteBody: "この車両を車両一覧から削除しますか？元に戻せません。",
       gallery: "ギャラリー", galleryHint: "予約サイトに表示する写真をアップロード。最初の画像がカード写真になります。", addImages: "＋ 画像を追加", uploading: "アップロード中…", primary: "メイン", makePrimary: "メインにする",
       translateAll: "すべて自動翻訳", translatingAll: "翻訳中… {done}/{total}", translateDone: "{n}台の車両を翻訳しました。", translateNone: "すべての車両は翻訳済みです。",

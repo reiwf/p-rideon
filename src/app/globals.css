@@ -2,8 +2,8 @@
 
 /* ============================================================
    P-RIDEON — minimalist-luxury design tokens
-   From the P-Rideon design handoff: champagne-gold accent on
-   green-tinted charcoal (dark) / green-tinted ivory (light).
+   From the P-Rideon design handoff, with the champagne-gold accent the
+   client chose: gold-tinted charcoal (dark) / green-tinted ivory (light).
    Marcellus for display, Jost for UI. Hairline borders,
    18/14/12 radii, generous letterspaced uppercase labels.
    ============================================================ */
@@ -26,17 +26,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --pr-bg: oklch(0.165 0.014 180);
-    --pr-surface: oklch(0.205 0.016 180);
-    --pr-raised: oklch(0.25 0.018 178);
-    --pr-ink: oklch(0.96 0.004 170);
-    --pr-muted: oklch(0.7 0.014 172);
+    --pr-bg: oklch(0.165 0.012 85);
+    --pr-surface: oklch(0.205 0.014 85);
+    --pr-raised: oklch(0.25 0.016 85);
+    --pr-ink: oklch(0.96 0.006 90);
+    --pr-muted: oklch(0.7 0.012 88);
     --pr-hairline: rgba(255, 255, 255, 0.1);
     --pr-accent: #b29a63;
     --pr-accent-ink: #161d1a;
     --pr-accent-strong: #d6bf85;
     --pr-logo-shadow: rgba(255, 221, 142, 0.38);
-    --pr-shadow-card: 0 18px 40px oklch(0.1 0.01 180 / 0.45);
+    --pr-shadow-card: 0 18px 40px oklch(0.1 0.008 85 / 0.45);
     color-scheme: dark;
   }
 }
@@ -44,17 +44,17 @@
 /* Scoped theme pins. Sections opt into a fixed palette regardless of
    system preference (hero band is always dark; admin is always light). */
 .theme-dark {
-  --pr-bg: oklch(0.165 0.014 180);
-  --pr-surface: oklch(0.205 0.016 180);
-  --pr-raised: oklch(0.25 0.018 178);
-  --pr-ink: oklch(0.96 0.004 170);
-  --pr-muted: oklch(0.7 0.014 172);
+  --pr-bg: oklch(0.165 0.012 85);
+  --pr-surface: oklch(0.205 0.014 85);
+  --pr-raised: oklch(0.25 0.016 85);
+  --pr-ink: oklch(0.96 0.006 90);
+  --pr-muted: oklch(0.7 0.012 88);
   --pr-hairline: rgba(255, 255, 255, 0.1);
   --pr-accent: #b29a63;
   --pr-accent-ink: #161d1a;
   --pr-accent-strong: #d6bf85;
   --pr-logo-shadow: rgba(255, 221, 142, 0.38);
-  --pr-shadow-card: 0 18px 40px oklch(0.1 0.01 180 / 0.45);
+  --pr-shadow-card: 0 18px 40px oklch(0.1 0.008 85 / 0.45);
   color-scheme: dark;
 }
 .theme-light {

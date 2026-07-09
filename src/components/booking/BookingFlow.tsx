@@ -12,7 +12,7 @@ import { tText, tList } from "@/lib/i18nContent";
 import { countryOptions } from "@/lib/countries";
 import { CompactVehicleCard, VehicleSheet } from "./VehicleSheet";
 import {
-  daysBetween, quote, combineDateTime, splitDateTime, yen, rentalTimes as times, defaultTripDates, addDaysISO,
+  rentalDuration, quote, combineDateTime, splitDateTime, yen, rentalTimes as times, defaultTripDates, addDaysISO,
   type BookingInsurance, type BookingRatePlan, type BookingExtra, type BookingBranch, type ExtraSelection,
 } from "@/lib/booking";
 const fmtDate = (dateISO: string, locale: Locale) =>
@@ -82,8 +82,12 @@ export function BookingFlow({
     () => extras.filter((x) => (extraQty[x.id] ?? 0) > 0).map((x) => ({ extra: x, qty: extraQty[x.id] })),
     [extras, extraQty],
   );
-  const days = daysBetween(`${pickupDate}T${pickupTime}`, `${returnDate}T${returnTime}`);
-  const q = useMemo(() => quote(vehicle, days, ratePlans, selectedIns, extraSel), [vehicle, days, ratePlans, selectedIns, extraSel]);
+  const dur = rentalDuration(`${pickupDate}T${pickupTime}`, `${returnDate}T${returnTime}`);
+  const q = useMemo(
+    () => quote(vehicle, dur, ratePlans, selectedIns, extraSel),
+    [vehicle, dur.days, dur.extraHours, dur.chargeDays, ratePlans, selectedIns, extraSel], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const durText = `${dur.days} ${t.booking.summary.days}${dur.extraHours > 0 ? ` + ${dur.extraHours} ${t.booking.summary.hours}` : ""}`;
 
   const countries = useMemo(() => countryOptions(locale), [locale]);
   const licenseName = countries.find(([code]) => code === driver.license)?.[1] ?? driver.license;
@@ -226,7 +230,7 @@ export function BookingFlow({
                   {/* chargeable duration — 24h rental days from pick-up time */}
                   <div className="flex items-center justify-between border-t border-hairline px-4 py-2.5">
                     <span className="text-[0.62rem] font-medium uppercase tracking-[0.2em] text-muted">{t.booking.summary.duration}</span>
-                    <span className="tnum text-[0.85rem] text-ink">{days} {t.booking.summary.days}</span>
+                    <span className="tnum text-[0.85rem] text-ink">{durText}</span>
                   </div>
                 </div>
               </div>
@@ -269,6 +273,12 @@ export function BookingFlow({
                       </button>
                     );
                   })}
+                </div>
+
+                {/* NOC — applies regardless of CDW; guests should know before choosing */}
+                <div className="mt-3 rounded-[14px] border border-hairline bg-raised/40 p-4">
+                  <p className="text-[0.66rem] font-medium uppercase tracking-[0.2em] text-muted">{t.booking.noc.title}</p>
+                  <p className="mt-1.5 text-[0.8rem] font-light leading-[1.6] text-muted">{t.booking.noc.body}</p>
                 </div>
               </div>
 
@@ -500,10 +510,11 @@ function SummaryCard({
   return (
     <div className="rounded-[18px] border border-hairline p-5">
       <h2 className="text-[0.66rem] font-medium uppercase tracking-[0.24em] text-muted">
-        {t.booking.summary.heading} — {q.days} {t.booking.summary.days}
+        {t.booking.summary.heading} — {q.duration.days} {t.booking.summary.days}{q.duration.extraHours > 0 ? ` + ${q.duration.extraHours} ${t.booking.summary.hours}` : ""}
       </h2>
       <div className="mt-4 space-y-1">
-        <Row label={`${t.booking.summary.base} · ${q.days} ${t.booking.summary.days}`} value={yen(q.base)} />
+        <Row label={`${t.booking.summary.base} · ${q.duration.days} ${t.booking.summary.days}`} value={yen(q.base)} />
+        {q.extension > 0 && <Row label={`${t.booking.summary.extension} · ${q.duration.extraHours} ${t.booking.summary.hours}`} value={yen(q.extension)} />}
         {q.discount > 0 && <Row label={`${t.booking.summary.discount}${q.plan ? ` (${tText(q.plan.name, q.plan.i18n?.name, locale)})` : ""}`} value={`− ${yen(q.discount)}`} accent />}
         {selectedIns && selectedIns.pricePerDay > 0 && <Row label={`${t.booking.summary.protection} · ${tText(selectedIns.name, selectedIns.i18n?.name, locale)}`} value={yen(q.insurance)} />}
         {q.extras.map((x) => (

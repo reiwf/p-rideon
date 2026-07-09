@@ -25,7 +25,8 @@ export type DbVehicle = {
   bags: number;
   transmission: "AT" | "MT";
   fuel: string;
-  price_per_day: number;
+price_per_day: number;
+  extension_per_hour: number;
   tags: string[];
   hue: string;
   active: boolean;

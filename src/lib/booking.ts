@@ -49,17 +49,27 @@ export type BookingBranch = { name: string; address: string };
 /** Chosen quantity of one extra (qty ≥ 1 only in a selection). */
 export type ExtraSelection = { extra: BookingExtra; qty: number };
 
-/** Grace period before an overrun starts a new chargeable day. */
-const GRACE_MS = 60 * 60 * 1000; // 1 hour
+/** A rental broken into full 24h days plus a started-hours remainder,
+    matching the price sheet: 基本料金 per 24h + 延長料金 per hour/day. */
+export type RentalDuration = {
+  /** full 24h blocks from pick-up time (min 1 — the 24h rate is the minimum charge) */
+  days: number;
+  /** started hours beyond the last full day (0–23), billed at the hourly extension rate */
+  extraHours: number;
+  /** started 24h periods — what per-day items (CDW, extras) are billed on */
+  chargeDays: number;
+};
 
-/** Rental days between two datetimes (min 1), using the industry-standard
-    24-hour rental day counted from pick-up time: every started 24h block
-    is a full day, with a 1-hour grace period (48h59m → 2 days, 50h → 3). */
-export function daysBetween(fromISO: string, toISO: string): number {
+export function rentalDuration(fromISO: string, toISO: string): RentalDuration {
   const a = new Date(fromISO).getTime();
   const b = new Date(toISO).getTime();
-  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return 1;
-  return Math.max(1, Math.ceil((b - a - GRACE_MS) / 86_400_000));
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return { days: 1, extraHours: 0, chargeDays: 1 };
+  const ms = b - a;
+  let days = Math.floor(ms / 86_400_000);
+  let extraHours = Math.ceil((ms - days * 86_400_000) / 3_600_000);
+  if (extraHours >= 24) { days += 1; extraHours = 0; }
+  if (days === 0) { days = 1; extraHours = 0; } // anything under 24h costs the 24h rate
+  return { days, extraHours, chargeDays: days + (extraHours > 0 ? 1 : 0) };
 }
 
 /** Best (largest) qualifying discount for the rental length. */
@@ -68,8 +78,12 @@ export function bestPlan(plans: BookingRatePlan[], days: number): BookingRatePla
 }
 
 export type Quote = {
-  days: number;
+  duration: RentalDuration;
+  /** full days × daily rate */
   base: number;
+  /** started-hours extension: hours × the vehicle's hourly rate, capped at
+      the daily rate (falls back to a full extra day when no hourly rate is set) */
+  extension: number;
   plan: BookingRatePlan | null;
   discount: number;
   insurance: number;
@@ -80,18 +94,25 @@ export type Quote = {
 
 export function quote(
   vehicle: Vehicle,
-  days: number,
+  duration: RentalDuration,
   plans: BookingRatePlan[],
   ins: BookingInsurance | null,
   extraSel: ExtraSelection[] = [],
 ): Quote {
-  const base = vehicle.pricePerDay * days;
-  const plan = bestPlan(plans, days);
-  const discount = plan ? Math.round((base * plan.discountPct) / 100) : 0;
-  const insurance = (ins?.pricePerDay ?? 0) * days;
-  const extras = extraSel.map((s) => ({ ...s, cost: s.extra.pricePerDay * s.qty * days }));
+  const base = vehicle.pricePerDay * duration.days;
+  const hourly = vehicle.extensionPerHour ?? 0;
+  const extension =
+    duration.extraHours === 0
+      ? 0
+      : hourly > 0
+        ? Math.min(duration.extraHours * hourly, vehicle.pricePerDay)
+        : vehicle.pricePerDay;
+  const plan = bestPlan(plans, duration.chargeDays);
+  const discount = plan ? Math.round(((base + extension) * plan.discountPct) / 100) : 0;
+  const insurance = (ins?.pricePerDay ?? 0) * duration.chargeDays;
+  const extras = extraSel.map((s) => ({ ...s, cost: s.extra.pricePerDay * s.qty * duration.chargeDays }));
   const extrasTotal = extras.reduce((sum, x) => sum + x.cost, 0);
-  return { days, base, plan, discount, insurance, extras, extrasTotal, total: base - discount + insurance + extrasTotal };
+  return { duration, base, extension, plan, discount, insurance, extras, extrasTotal, total: base + extension - discount + insurance + extrasTotal };
 }
 
 /** Build a JST timestamp string for the DB (the company is in Japan). */
