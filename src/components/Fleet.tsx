@@ -49,45 +49,57 @@ export function Fleet({ vehicles }: { vehicles: Vehicle[] }) {
         ))}
       </div>
 
-      {/* mobile: edge-peeking swipe carousel · sm+: grid */}
-      <div className="no-scrollbar mt-8 -mx-6 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-6 px-6 pb-2 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3">
+      {/* mobile: edge-peeking swipe carousel · md+: two generous columns */}
+      <div className="no-scrollbar mt-8 -mx-6 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-6 px-6 pb-2 md:mx-0 md:grid md:snap-none md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0 md:pb-0">
         {shown.map((v) => {
           const spec = [`${v.seats} ${t.fleet.seats}`, v.transmission, tText(v.fuel, v.i18n?.fuel, locale)].join(" · ");
           return (
             <article
               key={v.id}
-              className="group flex shrink-0 basis-[80%] snap-start flex-col overflow-hidden rounded-[18px] border border-hairline bg-surface transition-transform duration-300 hover:-translate-y-0.5 sm:basis-auto sm:shrink"
+              className="group flex shrink-0 basis-[85%] snap-start flex-col overflow-hidden rounded-[18px] border border-hairline bg-surface transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[var(--shadow-card)] md:basis-auto md:shrink"
             >
-              {/* photo (or silhouette placeholder) with category tag pill */}
-              <div className="relative bg-raised">
+              {/* photo (or silhouette placeholder) with a slow zoom on hover */}
+              <div className="relative overflow-hidden bg-raised">
                 {v.images?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={v.images[0]} alt={v.name} className="h-[150px] w-full object-cover" />
+                  <img
+                    src={v.images[0]}
+                    alt={v.name}
+                    className="aspect-[16/10] w-full object-cover transition-transform duration-[1100ms] ease-out group-hover:scale-[1.05]"
+                  />
                 ) : (
-                  <div className="grid h-[150px] place-items-center">
-                    <CarMark cls={v.cls} hue={v.hue} className="h-20 w-44 opacity-80" />
+                  <div className="grid aspect-[16/10] place-items-center">
+                    <CarMark cls={v.cls} hue={v.hue} className="h-24 w-52 opacity-80" />
                   </div>
                 )}
-                <span className="absolute left-3 top-3 rounded-full border border-hairline bg-bg/85 px-3 py-1 text-[0.66rem] uppercase tracking-[0.2em] text-muted backdrop-blur-sm">
+                {/* soft top scrim keeps the class tag legible on any photo */}
+                <div aria-hidden className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(10,9,6,0.35),transparent)]" />
+                <span className="absolute left-4 top-4 rounded-full border border-white/25 bg-black/30 px-3 py-1 text-[0.62rem] uppercase tracking-[0.24em] text-white backdrop-blur-sm">
                   {t.classes[v.cls]}
                 </span>
               </div>
 
-              <div className="flex flex-1 flex-col p-5">
-                <h3 className="font-display text-[1.0625rem] leading-tight text-ink">{v.name}</h3>
-                <p className="mt-1.5 text-[0.78rem] font-light text-muted">{spec}</p>
+              <div className="flex flex-1 flex-col p-6">
+                <div className=" items-baseline justify-between gap-3">
+                  <h3 className="font-display text-[1.3rem] leading-tight text-ink">{v.name}</h3>
+                  {/* {v.jp && <span className="shrink-0 text-[0.72rem] font-light tracking-wide text-muted">{v.jp}</span>} */}
+                </div>
+                <p className="mt-2 text-[0.8rem] font-light tracking-wide text-muted">{spec}</p>
 
-                <div className="mt-5 border-t border-hairline pt-4">
-                  <div className="tnum leading-none">
-                    <span className="text-[1.1875rem] text-ink">{formatYen(v.pricePerDay)}</span>
-                    <span className="ml-1 text-[0.78rem] font-light text-muted">{t.fleet.perDay}</span>
+                <div className="mt-6 flex items-end justify-between gap-4 border-t border-hairline pt-5">
+                  <div className="leading-none">
+                    <span className="text-[0.6rem] font-medium uppercase tracking-[0.24em] text-muted">{t.fleet.from}</span>
+                    <div className="tnum mt-1.5">
+                      <span className="font-display text-[1.625rem] text-ink">{formatYen(v.pricePerDay)}</span>
+                      <span className="ml-1.5 text-[0.78rem] font-light text-muted">{t.fleet.perDay}</span>
+                    </div>
                   </div>
-                  {/* handoff car-card CTA: full-width outlined button that fills on hover */}
                   <Link
                     href={bookingHref(v.id)}
-                    className="mt-4 flex min-h-[46px] items-center justify-center rounded-[12px] border border-accent text-[0.75rem] font-medium uppercase tracking-[0.22em] text-accent transition-colors hover:bg-accent hover:text-accent-ink"
+                    className="group/btn flex min-h-[46px] shrink-0 items-center gap-2 rounded-[12px] border border-accent px-6 text-[0.72rem] font-medium uppercase tracking-[0.22em] text-accent transition-colors hover:bg-accent hover:text-accent-ink"
                   >
                     {t.fleet.reserve}
+                    <span aria-hidden className="transition-transform duration-300 group-hover/btn:translate-x-0.5">→</span>
                   </Link>
                 </div>
               </div>

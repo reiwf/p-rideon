@@ -14,6 +14,7 @@ export function SiteHeader() {
 
   const links = [
     { href: "/#fleet", label: t.nav.fleet },
+    { href: "/#destinations", label: t.nav.destinations },
     { href: "/#how", label: t.nav.how },
   ];
 

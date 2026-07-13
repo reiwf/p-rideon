@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Hero } from "@/components/Hero";
 import { Fleet } from "@/components/Fleet";
 import { Steps } from "@/components/Steps";
+import { Destinations } from "@/components/Destinations";
 import { SiteFooter } from "@/components/SiteFooter";
 import { fetchPublicVehicles, fetchPublicBranches } from "@/lib/publicData";
 import { defaultTripDates } from "@/lib/booking";
@@ -29,6 +30,7 @@ export default async function Home() {
         <main className="flex-1">
           <Hero />
           <Fleet vehicles={vehicles} />
+          <Destinations />
           <Steps />
         </main>
         <SiteFooter />
