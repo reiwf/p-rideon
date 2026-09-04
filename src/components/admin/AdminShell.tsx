@@ -16,6 +16,7 @@ const nav = [
   { href: "/admin/branches", key: "branches", icon: "M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11ZM12 7.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Z" },
   { href: "/admin/extras", key: "extras", icon: "M21 8l-9-5-9 5v8l9 5 9-5V8M3 8l9 5 9-5M12 13v8" },
   { href: "/admin/bookings", key: "bookings", icon: "M7 4v3M17 4v3M4 9h16M5 6h14v14H5z" },
+  { href: "/admin/faq", key: "faq", icon: "M12 18h.01M9.1 9a3 3 0 1 1 4.2 3.2c-.8.4-1.3 1.1-1.3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" },
 ] as const;
 
 function LangToggle() {

@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { vehicles as fallbackVehicles, pickupPoints as fallbackBranches, type Vehicle, type VehicleClass } from "./data";
-import type { BookingBranch, BookingExtra, BookingInsurance, BookingRatePlan } from "./booking";
+import type { BookingBranch, BookingExtra, BookingInsurance, BookingRatePlan, SafetyVideo } from "./booking";
 import type { ContentI18n } from "./i18nContent";
 
 function serverClient() {
@@ -71,6 +71,25 @@ export async function fetchPublicBranches(): Promise<string[]> {
   }
 }
 
+/** The precaution video config (car_settings → `safety_video`). Returns null
+   when nothing is uploaded yet, which leaves the booking flow ungated —
+   an unconfigured video must never block real reservations. */
+export async function fetchSafetyVideo(): Promise<SafetyVideo | null> {
+  const client = serverClient();
+  if (!client) return null;
+  try {
+    const { data, error } = await client.from("car_settings").select("value").eq("key", "safety_video").maybeSingle();
+    if (error || !data) return null;
+    const v = (data.value ?? {}) as Partial<SafetyVideo>;
+    const videos = Object.fromEntries(Object.entries(v.videos ?? {}).filter(([, url]) => Boolean(url)));
+    if (Object.keys(videos).length === 0) return null;
+    // strict unless explicitly relaxed, so an older settings row keeps gating
+    return { poster: v.poster ?? "", videos, requireFullPlay: v.requireFullPlay !== false };
+  } catch {
+    return null;
+  }
+}
+
 /** Data needed for the booking flow: the chosen (active) vehicle plus the
    current insurance options, rate plans, branches and extras. vehicle=null
    means "not found"; query failures THROW so the route errors instead of
@@ -82,6 +101,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
   branches: string[];
   branchInfo: BookingBranch[];
   extras: BookingExtra[];
+  safetyVideo: SafetyVideo | null;
 }> {
   const client = serverClient();
   if (!client || !vehicleId) {
@@ -89,6 +109,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
       vehicle: fallbackVehicles.find((v) => v.id === vehicleId) ?? null,
       insurances: [], ratePlans: [], branches: fallbackBranches,
       branchInfo: fallbackBranches.map((name) => ({ name, address: "" })), extras: [],
+      safetyVideo: null,
     };
   }
 
@@ -96,7 +117,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
   // "not found" rather than letting the uuid cast error the whole query
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
 
-  const [vRes, iRes, pRes, bRes, xRes] = await Promise.all([
+  const [vRes, iRes, pRes, bRes, xRes, safetyVideo] = await Promise.all([
     isUuid
       ? client.from("car_vehicles").select(VEHICLE_COLUMNS).eq("id", vehicleId).eq("active", true).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -104,6 +125,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
     client.from("car_rate_plans").select("id,name,min_days,discount_pct,i18n").eq("active", true),
     client.from("car_branches").select("name,address").eq("active", true).order("sort", { ascending: true }),
     client.from("car_extras").select("id,name,description,price_per_day,max_qty,i18n").eq("active", true).order("sort", { ascending: true }),
+    fetchSafetyVideo(),
   ]);
 
   const firstErr = vRes.error || iRes.error || pRes.error || bRes.error || xRes.error;
@@ -131,5 +153,6 @@ export async function fetchBookingData(vehicleId: string): Promise<{
     branches: branches.length ? branches : fallbackBranches,
     branchInfo: branchInfo.length ? branchInfo : fallbackBranches.map((name) => ({ name, address: "" })),
     extras,
+    safetyVideo,
   };
 }

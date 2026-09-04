@@ -11,9 +11,11 @@ import type { Vehicle } from "@/lib/data";
 import { tText, tList } from "@/lib/i18nContent";
 import { countryOptions } from "@/lib/countries";
 import { CompactVehicleCard, VehicleSheet } from "./VehicleSheet";
+import { SafetyVideoGate } from "./SafetyVideo";
 import {
   rentalDuration, quote, combineDateTime, splitDateTime, yen, rentalTimes as times, defaultTripDates, addDaysISO,
-  type BookingInsurance, type BookingRatePlan, type BookingExtra, type BookingBranch, type ExtraSelection,
+  safetyVideoFor,
+  type BookingInsurance, type BookingRatePlan, type BookingExtra, type BookingBranch, type ExtraSelection, type SafetyVideo,
 } from "@/lib/booking";
 const fmtDate = (dateISO: string, locale: Locale) =>
   new Intl.DateTimeFormat(intlLocale[locale], { weekday: "short", month: "short", day: "numeric" }).format(new Date(`${dateISO}T00:00`));
@@ -26,7 +28,7 @@ const inputBase =
 const label11 = "text-[0.66rem] font-medium uppercase tracking-[0.2em] text-muted";
 
 export function BookingFlow({
-  vehicle, insurances, ratePlans, branches, branchInfo, extras, initial,
+  vehicle, insurances, ratePlans, branches, branchInfo, extras, safetyVideo, initial,
 }: {
   vehicle: Vehicle;
   insurances: BookingInsurance[];
@@ -34,6 +36,7 @@ export function BookingFlow({
   branches: string[];
   branchInfo: BookingBranch[];
   extras: BookingExtra[];
+  safetyVideo: SafetyVideo | null;
   initial: { location: string; from: string; to: string };
 }) {
   const { t, locale } = useI18n();
@@ -73,6 +76,11 @@ export function BookingFlow({
   const [showVehicle, setShowVehicle] = useState(false);
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // which video file has been watched / acknowledged, rather than a plain
+  // boolean: a language switch swaps the file, so the gate reopens on its own
+  const [watchedSrc, setWatchedSrc] = useState<string | null>(null);
+  const [ackedSrc, setAckedSrc] = useState<string | null>(null);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [reference, setReference] = useState<string | null>(null);
 
@@ -91,6 +99,17 @@ export function BookingFlow({
 
   const countries = useMemo(() => countryOptions(locale), [locale]);
   const licenseName = countries.find(([code]) => code === driver.license)?.[1] ?? driver.license;
+
+  // no video configured = nothing to gate on; a missing upload must never
+  // stop real reservations
+  const videoSrc = safetyVideo ? safetyVideoFor(safetyVideo, locale) : null;
+  const videoWatched = Boolean(videoSrc) && watchedSrc === videoSrc;
+  const videoAcked = Boolean(videoSrc) && ackedSrc === videoSrc;
+  // a file that won't load is not the guest's fault and must not strand the
+  // booking — they pass through, and the null ack tells staff to cover it
+  const videoFailed = Boolean(videoSrc) && failedSrc === videoSrc;
+  const videoStrict = safetyVideo?.requireFullPlay ?? true;
+  const videoOk = !videoSrc || videoFailed || (videoAcked && (!videoStrict || videoWatched));
 
   const emailOk = /\S+@\S+\.\S+/.test(driver.email);
   const detailsValid = Boolean(driver.name.trim()) && emailOk && Boolean(driver.phone.trim()) && Boolean(driver.license);
@@ -127,6 +146,8 @@ export function BookingFlow({
       p_notes: notes,
       p_extras: extraSel.map((s) => ({ id: s.extra.id, name: s.extra.name, qty: s.qty, price_per_day: s.extra.pricePerDay })),
       p_license_country: driver.license,
+      p_safety_ack: Boolean(videoSrc) && videoAcked && (!videoStrict || videoWatched),
+      p_safety_full_play: Boolean(videoSrc) && videoWatched,
     });
     setSubmitting(false);
     if (err) { setError(t.booking.errorCreate); return; }
@@ -304,7 +325,7 @@ export function BookingFlow({
                               type="button"
                               onClick={() => setQty(x.id, qty - 1, x.maxQty)}
                               disabled={qty === 0}
-                              aria-label={`− ${x.name}`}
+                              aria-label={`− ${tText(x.name, x.i18n?.name, locale)}`}
                               className="grid h-9 w-9 place-items-center rounded-full border border-hairline text-ink transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               −
@@ -314,7 +335,7 @@ export function BookingFlow({
                               type="button"
                               onClick={() => setQty(x.id, qty + 1, x.maxQty)}
                               disabled={qty >= x.maxQty}
-                              aria-label={`+ ${x.name}`}
+                              aria-label={`+ ${tText(x.name, x.i18n?.name, locale)}`}
                               className="grid h-9 w-9 place-items-center rounded-full border border-hairline text-ink transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               +
@@ -395,6 +416,21 @@ export function BookingFlow({
 
               <RequiredDocs t={t} />
 
+              {videoSrc && (
+                <SafetyVideoGate
+                  key={videoSrc}
+                  src={videoSrc}
+                  poster={safetyVideo?.poster ?? ""}
+                  strict={videoStrict}
+                  watched={videoWatched}
+                  onWatched={() => setWatchedSrc(videoSrc)}
+                  acked={videoAcked}
+                  onAcked={(v) => setAckedSrc(v ? videoSrc : null)}
+                  failed={videoFailed}
+                  onFailed={() => setFailedSrc(videoSrc)}
+                />
+              )}
+
               <p className="rounded-[14px] border border-champagne/40 bg-champagne/10 p-4 text-[0.85rem] font-light leading-[1.6] text-ink/85">{t.booking.confirm.note}</p>
               {error && <p className="rounded-[12px] border border-signal/40 bg-signal/10 px-3.5 py-2.5 text-sm text-signal">{error}</p>}
             </div>
@@ -423,7 +459,7 @@ export function BookingFlow({
               <button
                 type="button"
                 onClick={submit}
-                disabled={submitting}
+                disabled={submitting || !videoOk}
                 className="flex min-h-[54px] items-center justify-center rounded-[14px] bg-accent px-8 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-accent-ink transition-[filter] hover:brightness-[1.08] disabled:opacity-60"
               >
                 {submitting ? t.booking.reserving : t.booking.reserve}

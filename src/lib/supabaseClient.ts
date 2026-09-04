@@ -76,6 +76,28 @@ export type DbExtra = {
   i18n: ContentI18n | null;
 };
 
+export type DbFaq = {
+  id: string;
+  topic: string;
+  question: string;
+  answer: string;
+  keywords: string[] | null;
+  i18n: ContentI18n | null;
+  sort: number;
+  active: boolean;
+};
+
+/** One logged help-desk question. Append-only: no update path exists. */
+export type DbFaqQuery = {
+  id: string;
+  session_id: string;
+  locale: string;
+  query: string;
+  outcome: string;
+  faq_id: string | null;
+  created_at: string;
+};
+
 /** One line of a booking's `extras` jsonb column. */
 export type DbBookingExtra = { id: string; name: string; qty: number; price_per_day: number };
 
@@ -96,5 +118,7 @@ export type DbBooking = {
   notes: string;
   extras: DbBookingExtra[];
   license_country: string;
+  safety_video_ack_at: string | null;
+  safety_video_watched: boolean;
   created_at: string;
 };

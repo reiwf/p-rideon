@@ -1,5 +1,6 @@
 import { formatYen, type Vehicle } from "./data";
 import type { ContentI18n } from "./i18nContent";
+import type { Locale } from "./i18n";
 
 /** Bookable pick-up/return times: 07:00 → 22:00 in 30-minute steps. */
 export const rentalTimes = Array.from({ length: 31 }, (_, i) => {
@@ -45,6 +46,24 @@ export type BookingExtra = {
 
 /** A branch as shown in the booking flow (name is the stored identifier). */
 export type BookingBranch = { name: string; address: string };
+
+/** The precaution video the guest must watch before confirming. Subtitles are
+    burned into the picture, so each language is its own file — see
+    `safety_video` in car_settings, uploaded to Cloudflare R2 by the admin. */
+export type SafetyVideo = {
+  poster: string;
+  /** locale → public mp4 URL */
+  videos: Partial<Record<Locale, string>>;
+  /** strict mode: the guest must play the video to the end, not just tick the
+      acknowledgement. Off also lifts the no-skipping rule. */
+  requireFullPlay: boolean;
+};
+
+/** The file to play for `locale`: their own language, else English, else
+    whatever exists — a configured video must never render an empty player. */
+export function safetyVideoFor(v: SafetyVideo, locale: Locale): string | null {
+  return v.videos[locale] || v.videos.en || Object.values(v.videos).find(Boolean) || null;
+}
 
 /** Chosen quantity of one extra (qty ≥ 1 only in a selection). */
 export type ExtraSelection = { extra: BookingExtra; qty: number };

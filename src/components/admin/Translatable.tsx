@@ -1,25 +1,32 @@
 "use client";
 
 /* Translations panel for admin forms. Renders JA/ZH/KO inputs for the given
-   fields and a DeepL "Auto-translate" button. English lives in the form's main
-   inputs (the fallback); this panel only edits the `i18n` blob. */
+   fields and a DeepL "Auto-translate" button.
+
+   Staff write in the form's own fields, in whatever language they work in —
+   Japanese here. The "written in" selector just says which language that is, so
+   DeepL is told the right source; it is preselected by detecting the script of
+   what's already typed. Every OTHER language, English included, is a translated
+   slot in the i18n blob. English is no longer special: it is filled by
+   auto-translate like 中文 and 한국어, and the base text is the fallback. */
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAdminT } from "@/lib/adminI18n";
-import { T_LOCALES, type TLocale, type ContentI18n } from "@/lib/i18nContent";
+import { ALL_LOCALES, detectLocale, type ContentI18n } from "@/lib/i18nContent";
+import { type Locale } from "@/lib/i18n";
 import { Button, inputCls } from "./ui";
 import { Globe } from "@/components/icons";
 
 export type TransField =
-  | { key: "name" | "description" | "fuel"; label: string; base: string; list?: false }
+  | { key: "name" | "description" | "fuel" | "topic" | "question" | "answer"; label: string; base: string; list?: false }
   | { key: "features" | "tags"; label: string; base: string[]; list: true };
 
-const LANG_LABEL: Record<TLocale, string> = { ja: "日本語", zh: "中文", ko: "한국어" };
+const LANG_LABEL: Record<Locale, string> = { en: "English", ja: "日本語", zh: "中文", ko: "한국어" };
 
-type Cells = Record<string, Partial<Record<TLocale, string | string[]>>>;
-const getCell = (i18n: ContentI18n, key: string, loc: TLocale) => (i18n as Cells)[key]?.[loc];
-const withCell = (i18n: ContentI18n, key: string, loc: TLocale, val: string | string[]): ContentI18n => ({
+type Cells = Record<string, Partial<Record<Locale, string | string[]>>>;
+const getCell = (i18n: ContentI18n, key: string, loc: Locale) => (i18n as Cells)[key]?.[loc];
+const withCell = (i18n: ContentI18n, key: string, loc: Locale, val: string | string[]): ContentI18n => ({
   ...i18n,
   [key]: { ...((i18n as Cells)[key] ?? {}), [loc]: val },
 });
@@ -33,11 +40,24 @@ export function TranslationsPanel({
   fields: TransField[];
   onChange: (next: ContentI18n) => void;
 }) {
-  const { t } = useAdminT();
+  const { t, lang } = useAdminT();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  // The form's own fields are the source, whatever language they hold.
   const hasBase = fields.some((f) => (f.list ? f.base.length > 0 : f.base.trim().length > 0));
+
+  // Follow what's actually being typed until staff override it — detecting only
+  // once on mount would leave a new entry stuck on the console language while
+  // they type in another. Falls back to the language the console is set to.
+  const [picked, setPicked] = useState<Locale | null>(null);
+  const detected = fields.reduce<Locale | null>(
+    (found, f) => found ?? detectLocale(f.list ? f.base.join(" ") : f.base),
+    null,
+  );
+  const source = picked ?? detected ?? (lang as Locale);
+
+  const targetLocales = ALL_LOCALES.filter((l) => l !== source);
 
   async function autoTranslate() {
     setErr("");
@@ -62,13 +82,13 @@ export function TranslationsPanel({
       const res = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ text: payload, targets: T_LOCALES }),
+        body: JSON.stringify({ text: payload, source, targets: targetLocales }),
       });
       const json = (await res.json()) as { translations?: Record<string, string[]>; error?: string };
       if (!res.ok) throw new Error(json.error || t.tr.failed);
 
       let next: ContentI18n = { ...i18n };
-      for (const loc of T_LOCALES) {
+      for (const loc of targetLocales) {
         const arr = json.translations?.[loc];
         if (!arr) continue;
         for (const seg of segs) {
@@ -92,14 +112,29 @@ export function TranslationsPanel({
           {t.tr.heading}
         </span>
         <Button type="button" variant="ghost" className="px-3 py-1.5 text-[0.78rem]" disabled={busy || !hasBase} onClick={autoTranslate}>
-          {busy ? t.tr.translating : `${t.tr.auto} · 日中韓`}
+          {busy ? t.tr.translating : `${t.tr.auto} → ${targetLocales.map((l) => LANG_LABEL[l]).join(" / ")}`}
         </Button>
       </div>
       <p className="mt-1 text-[0.72rem] text-stone">{t.tr.hint}</p>
+
+      <label className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="text-[0.72rem] font-semibold text-stone">{t.tr.source}</span>
+        <select
+          className="rounded-md border border-mist bg-white px-2 py-1 text-[0.78rem] text-ink"
+          value={source}
+          onChange={(e) => { setPicked(e.target.value as Locale); setErr(""); }}
+        >
+          {ALL_LOCALES.map((l) => (
+            <option key={l} value={l}>{LANG_LABEL[l]}</option>
+          ))}
+        </select>
+        <span className="text-[0.7rem] text-stone">{t.tr.sourceHint.replace("{lang}", LANG_LABEL[source])}</span>
+      </label>
+      {!hasBase && <p className="mt-1.5 text-[0.72rem] text-signal">{t.tr.sourceEmpty}</p>}
       {err && <p className="mt-1.5 text-[0.72rem] text-signal">{err}</p>}
 
       <div className="mt-3 space-y-2.5">
-        {T_LOCALES.map((loc) => (
+        {targetLocales.map((loc) => (
           <div key={loc} className="rounded-md border border-mist bg-white p-2.5">
             <span className="mb-1.5 block text-[0.72rem] font-semibold text-stone">{LANG_LABEL[loc]}</span>
             <div className="space-y-2">
@@ -112,8 +147,8 @@ export function TranslationsPanel({
                       value={((getCell(i18n, f.key, loc) as string[] | undefined) ?? []).join("\n")}
                       onChange={(e) => onChange(withCell(i18n, f.key, loc, e.target.value.split("\n").map((s) => s.trim()).filter(Boolean)))}
                     />
-                    {/* tList() only uses a translated list whose length matches the
-                        English base — warn instead of silently falling back */}
+                    {/* tList() only uses a translated list whose length matches
+                        the base list — warn instead of silently falling back */}
                     {(() => {
                       const n = ((getCell(i18n, f.key, loc) as string[] | undefined) ?? []).length;
                       return n > 0 && n !== f.base.length ? (

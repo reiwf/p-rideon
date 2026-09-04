@@ -2,31 +2,21 @@
    Translates English catalog text → JA/ZH/KO. The DeepL key never reaches the
    browser. Access is restricted to signed-in staff (car_is_staff). */
 
-import { createClient } from "@supabase/supabase-js";
-import { DEEPL_TARGET, T_LOCALES, type TLocale } from "@/lib/i18nContent";
+import { ALL_LOCALES, DEEPL_SOURCE, DEEPL_TARGET, T_LOCALES } from "@/lib/i18nContent";
+import type { Locale } from "@/lib/i18n";
+import { bearerToken, isStaff } from "@/lib/staffAuth";
 
 export const dynamic = "force-dynamic";
 
-type Body = { text?: string[]; targets?: TLocale[] };
-
-async function isStaff(token: string): Promise<boolean> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return false;
-  try {
-    const client = createClient(url, key, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data, error } = await client.rpc("car_is_staff");
-    return !error && data === true;
-  } catch {
-    return false;
-  }
-}
+type Body = {
+  text?: string[];
+  /** language the admin actually wrote in — defaults to the English base */
+  source?: Locale;
+  targets?: Locale[];
+};
 
 /** Call DeepL for one target language, preserving input order. */
-async function translateTo(texts: string[], target: string, apiKey: string, host: string): Promise<string[]> {
+async function translateTo(texts: string[], target: string, source: string, apiKey: string, host: string): Promise<string[]> {
   // only send non-empty strings; map results back to original positions
   const idx: number[] = [];
   const payload: string[] = [];
@@ -41,7 +31,7 @@ async function translateTo(texts: string[], target: string, apiKey: string, host
       Authorization: `DeepL-Auth-Key ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ text: payload, source_lang: "EN", target_lang: target }),
+    body: JSON.stringify({ text: payload, source_lang: source, target_lang: target }),
   });
   if (!res.ok) {
     throw new Error(`DeepL ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -53,9 +43,7 @@ async function translateTo(texts: string[], target: string, apiKey: string, host
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization") ?? "";
-  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7) : "";
-  if (!token || !(await isStaff(token))) {
+  if (!(await isStaff(bearerToken(request)))) {
     return Response.json({ error: "Not authorized" }, { status: 401 });
   }
 
@@ -74,12 +62,16 @@ export async function POST(request: Request) {
   }
 
   const text = Array.isArray(body.text) ? body.text : [];
-  const targets = (body.targets ?? T_LOCALES).filter((t): t is TLocale => (T_LOCALES as string[]).includes(t));
-  if (text.length === 0) return Response.json({ translations: {} });
+  const source: Locale = ALL_LOCALES.includes(body.source as Locale) ? (body.source as Locale) : "en";
+  // never translate a language into itself
+  const targets = (body.targets ?? T_LOCALES)
+    .filter((t): t is Locale => ALL_LOCALES.includes(t))
+    .filter((t) => t !== source);
+  if (text.length === 0 || targets.length === 0) return Response.json({ translations: {} });
 
   try {
     const entries = await Promise.all(
-      targets.map(async (loc) => [loc, await translateTo(text, DEEPL_TARGET[loc], apiKey, host)] as const),
+      targets.map(async (loc) => [loc, await translateTo(text, DEEPL_TARGET[loc], DEEPL_SOURCE[source], apiKey, host)] as const),
     );
     return Response.json({ translations: Object.fromEntries(entries) });
   } catch (e) {

@@ -11,7 +11,7 @@ export const adminLangs: { code: AdminLang; label: string }[] = [
 ];
 
 export type AdminDict = {
-  nav: { dashboard: string; vehicles: string; ratePlans: string; insurance: string; branches: string; extras: string; bookings: string };
+  nav: { dashboard: string; vehicles: string; ratePlans: string; insurance: string; branches: string; extras: string; bookings: string; faq: string };
   common: {
     cancel: string; delete: string; edit: string; back: string; signOut: string; viewSite: string; loading: string;
     active: string; off: string; shown: string; hidden: string; published: string; status: string; perDay: string; untitled: string;
@@ -61,16 +61,36 @@ export type AdminDict = {
     title: string; sub: string; empty: string; emptyBody: string;
 thRef: string; thCustomer: string; thVehicle: string; thPickup: string; thTotal: string; license: string; extras: string;
     notifyTitle: string; notifyHint: string; notifyPh: string; notifySave: string; notifySaved: string;
+    video: {
+      title: string; hint: string; fallbackNote: string;
+      upload: string; replace: string; uploading: string; missing: string; remove: string; preview: string;
+      urlPh: string; save: string; saved: string; tooBig: string; notConfigured: string;
+      strictTitle: string; strictOn: string; strictOff: string;
+      acked: string; notAcked: string; ackedFull: string;
+    };
     status: { pending: string; confirmed: string; cancelled: string; completed: string };
+  };
+  faq: {
+    title: string; sub: string; add: string; empty: string;
+    topic: string; topicHint: string; topicPh: string;
+    question: string; questionPh: string; answer: string; answerPh: string;
+    keywords: string; keywordsHint: string; keywordsPh: string;
+    sort: string; sortHint: string; activeLabel: string;
+    formAdd: string; formEdit: string; saveAdd: string; saveEdit: string;
+    deleteTitle: string; deleteBody: string;
+    logTitle: string; logHint: string; logShow: string; logHide: string; logEmpty: string;
+    thWhen: string; thQuery: string; thLang: string; thOutcome: string;
+    outcome: { answer: string; choose: string; topics: string; handoff: string };
   };
 tr: {
     heading: string; hint: string; auto: string; translating: string; failed: string; notConfigured: string; listMismatch: string;
+    source: string; sourceHint: string; sourceEmpty: string;
   };
 };
 
 export const adminDict: Record<AdminLang, AdminDict> = {
   en: {
-    nav: { dashboard: "Dashboard", vehicles: "Vehicles", ratePlans: "Rate plans", insurance: "Insurance", branches: "Branches", extras: "Extras", bookings: "Bookings" },
+    nav: { dashboard: "Dashboard", vehicles: "Vehicles", ratePlans: "Rate plans", insurance: "Insurance", branches: "Branches", extras: "Extras", bookings: "Bookings", faq: "FAQ" },
     common: { cancel: "Cancel", delete: "Delete", edit: "Edit", back: "Back", signOut: "Sign out", viewSite: "View booking site", loading: "Loading…", active: "Active", off: "Off", shown: "Shown", hidden: "Hidden", published: "Published", status: "Status", perDay: "/ day", untitled: "Untitled" },
     login: { title: "Admin console", subtitle: "Sign in to manage vehicles, rates and insurance.", email: "Email", password: "Password", signIn: "Sign in", signingIn: "Signing in…", staffOnly: "Staff accounts only. Contact your administrator for access.", notConfigured: "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local and restart the dev server.", notAuthorized: "This account is not authorized for the admin console.", enterBoth: "Enter your email and password." },
     dbError: "Couldn't reach the database:",
@@ -121,17 +141,48 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       title: "Bookings", sub: "Reserve-now requests from customers (pay at pickup). Newest first.", empty: "No bookings yet", emptyBody: "When a tourist completes a reservation on the booking site, it appears here for your staff to confirm.",
       thRef: "Reference", thCustomer: "Customer", thVehicle: "Vehicle", thPickup: "Pick-up", thTotal: "Est. total", license: "Licence", extras: "Extras",
       notifyTitle: "New-booking notifications", notifyHint: "These addresses receive an email whenever a customer completes a booking. Separate multiple addresses with commas.", notifyPh: "staff@p-rideon.com, manager@p-rideon.com", notifySave: "Save", notifySaved: "Saved.",
+      video: {
+        title: "Safety video", hint: "Customers must watch this to the end and tick an acknowledgement before they can confirm a booking. Upload one MP4 per language — the subtitles are part of the picture. Max 100 MB each. Leave every language empty to switch the requirement off.",
+        fallbackNote: "Each customer sees the file for their own language; English is used for any language with no file of its own.",
+        upload: "Upload", replace: "Replace", uploading: "Uploading…", missing: "No file", remove: "Remove", preview: "Preview",
+        urlPh: "…or paste a video URL",
+        save: "Save", saved: "Saved.", tooBig: "File is too large (max 100 MB).",
+        notConfigured: "Video storage is not configured yet — see DEPLOY.md (Cloudflare R2). You can still paste a URL.",
+        strictTitle: "Require the video to be played to the end",
+        strictOn: "On — the acknowledgement can only be ticked once the video finishes, and skipping ahead is blocked.",
+        strictOff: "Off — the customer must still tick the acknowledgement, but can confirm without finishing the video.",
+        acked: "Safety video acknowledged", notAcked: "Safety video not acknowledged", ackedFull: "Safety video watched in full",
+      },
       status: { pending: "pending", confirmed: "confirmed", cancelled: "cancelled", completed: "completed" },
     },
+    faq: {
+      title: "FAQ", sub: "Answers the help-desk chat gives customers. Add match terms so a question is found however it's phrased.",
+      add: "Add question", empty: "No questions yet. Add the ones customers ask most.",
+      topic: "Topic", topicHint: "Groups the question. Customers see topics as buttons when nothing matches.", topicPh: "Insurance",
+      question: "Question", questionPh: "What does the insurance cover?",
+      answer: "Answer", answerPh: "CDW is included on every rental. Zero-excess cover is available as an upgrade.",
+      keywords: "Match terms", keywordsHint: "Comma-separated, any language. These match hardest — add the words customers actually type, including 日本語/中文/한국어.",
+      keywordsPh: "insurance, cdw, excess, 保険, 保险, 보험",
+      sort: "Order", sortHint: "Lower numbers appear first.", activeLabel: "Shown to customers",
+      formAdd: "New question", formEdit: "Edit question", saveAdd: "Add", saveEdit: "Save",
+      deleteTitle: "Delete this question?", deleteBody: "It will stop being offered in the help desk. This can't be undone.",
+      logTitle: "What customers asked", logHint: "Last {n} questions, {u} of which got no answer. Unanswered ones are the gaps worth writing entries for.",
+      logShow: "Show", logHide: "Hide", logEmpty: "Nobody has asked anything yet.",
+      thWhen: "When", thQuery: "Question", thLang: "Lang", thOutcome: "Result",
+      outcome: { answer: "answered", choose: "offered choices", topics: "no answer", handoff: "no answer" },
+    },
     tr: {
-      heading: "Translations", hint: "Shown on the customer site. Leave a language blank to fall back to English.",
+      heading: "Translations", hint: "Shown on the customer site. A language left blank falls back to the text you typed above.",
       auto: "Auto-translate", translating: "Translating…", failed: "Translation failed.", notConfigured: "Auto-translate needs a DeepL API key (DEEPL_API_KEY).",
-      listMismatch: "Needs the same number of lines as the English list ({n}) or the customer site falls back to English.",
+      listMismatch: "Needs the same number of lines as the list above ({n}) or the customer site falls back to what you typed there.",
+      source: "Written in",
+      sourceHint: "The fields above are in {lang}. Every other language below is translated from them.",
+      sourceEmpty: "Fill in the fields above first, then auto-translate.",
     },
   },
 
   ja: {
-    nav: { dashboard: "ダッシュボード", vehicles: "車両", ratePlans: "料金プラン", insurance: "保険", branches: "店舗", extras: "オプション", bookings: "予約" },
+    nav: { dashboard: "ダッシュボード", vehicles: "車両", ratePlans: "料金プラン", insurance: "保険", branches: "店舗", extras: "オプション", bookings: "予約", faq: "よくある質問" },
     common: { cancel: "キャンセル", delete: "削除", edit: "編集", back: "戻る", signOut: "ログアウト", viewSite: "予約サイトを見る", loading: "読み込み中…", active: "有効", off: "無効", shown: "表示中", hidden: "非表示", published: "公開中", status: "状態", perDay: "/ 日", untitled: "無題" },
     login: { title: "管理コンソール", subtitle: "車両・料金・保険を管理するにはログインしてください。", email: "メールアドレス", password: "パスワード", signIn: "ログイン", signingIn: "ログイン中…", staffOnly: "スタッフ専用です。アクセスは管理者にお問い合わせください。", notConfigured: "Supabaseが未設定です。.env.local に NEXT_PUBLIC_SUPABASE_URL と NEXT_PUBLIC_SUPABASE_ANON_KEY を追加し、開発サーバーを再起動してください。", notAuthorized: "このアカウントは管理コンソールへのアクセス権がありません。", enterBoth: "メールアドレスとパスワードを入力してください。" },
     dbError: "データベースに接続できませんでした：",
@@ -182,12 +233,43 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       title: "予約", sub: "お客様からの「今すぐ予約」（現地払い）。新しい順。", empty: "予約はまだありません", emptyBody: "お客様が予約サイトで予約を完了すると、ここに表示されスタッフが確認できます。",
       thRef: "予約番号", thCustomer: "お客様", thVehicle: "車両", thPickup: "出発", thTotal: "概算合計", license: "免許", extras: "オプション",
       notifyTitle: "新規予約の通知", notifyHint: "お客様が予約を完了すると、これらのアドレスに通知メールが届きます。複数の場合はカンマ区切りで入力してください。", notifyPh: "staff@p-rideon.com, manager@p-rideon.com", notifySave: "保存", notifySaved: "保存しました。",
+      video: {
+        title: "安全動画", hint: "お客様はこの動画を最後まで視聴し、確認にチェックを入れないと予約を確定できません。字幕は映像に焼き込まれているため、言語ごとにMP4を1本ずつアップロードしてください。1本あたり最大100MB。すべて未設定にすると必須ではなくなります。",
+        fallbackNote: "お客様にはご自身の言語のファイルが表示されます。ファイルのない言語には英語版が使われます。",
+        upload: "アップロード", replace: "差し替え", uploading: "アップロード中…", missing: "未登録", remove: "削除", preview: "プレビュー",
+        urlPh: "…または動画URLを貼り付け",
+        save: "保存", saved: "保存しました。", tooBig: "ファイルが大きすぎます（最大100MB）。",
+        notConfigured: "動画ストレージが未設定です — DEPLOY.md（Cloudflare R2）をご確認ください。URLの貼り付けは可能です。",
+        strictTitle: "動画を最後まで再生することを必須にする",
+        strictOn: "オン — 動画の再生が終わるまで確認のチェックを入れられず、スキップもできません。",
+        strictOff: "オフ — 確認のチェックは必要ですが、最後まで再生しなくても確定できます。",
+        acked: "安全動画の確認済み", notAcked: "安全動画は未確認", ackedFull: "安全動画を最後まで視聴済み",
+      },
       status: { pending: "保留中", confirmed: "確定", cancelled: "キャンセル", completed: "完了" },
     },
+    faq: {
+      title: "よくある質問", sub: "ヘルプデスクがお客様に返す回答です。表現が違っても見つかるよう、検索語を登録してください。",
+      add: "質問を追加", empty: "質問がまだありません。よく聞かれるものから追加してください。",
+      topic: "トピック", topicHint: "質問の分類です。該当が見つからないとき、お客様にはトピックがボタンで表示されます。", topicPh: "保険",
+      question: "質問", questionPh: "保険はどこまで補償されますか？",
+      answer: "回答", answerPh: "全レンタルにCDWが含まれます。免責ゼロプランへのアップグレードもご利用いただけます。",
+      keywords: "検索語", keywordsHint: "カンマ区切り・言語は問いません。最も強く一致します。お客様が実際に入力する語（English/中文/한국어を含む）を登録してください。",
+      keywordsPh: "保険, 免責, cdw, insurance, 保险, 보험",
+      sort: "並び順", sortHint: "小さい数字が先に表示されます。", activeLabel: "お客様に表示する",
+      formAdd: "質問を新規作成", formEdit: "質問を編集", saveAdd: "追加", saveEdit: "保存",
+      deleteTitle: "この質問を削除しますか？", deleteBody: "ヘルプデスクで案内されなくなります。この操作は取り消せません。",
+      logTitle: "お客様からの質問", logHint: "直近{n}件のうち{u}件が未回答です。未回答の質問は、新しく登録すべき内容です。",
+      logShow: "表示", logHide: "隠す", logEmpty: "まだ質問はありません。",
+      thWhen: "日時", thQuery: "質問", thLang: "言語", thOutcome: "結果",
+      outcome: { answer: "回答済み", choose: "候補を提示", topics: "回答なし", handoff: "回答なし" },
+    },
     tr: {
-      heading: "翻訳", hint: "お客様向けサイトに表示されます。空欄の言語は英語が使われます。",
+      heading: "翻訳", hint: "お客様向けサイトに表示されます。空欄の言語は上の入力欄の文言が使われます。",
       auto: "自動翻訳", translating: "翻訳中…", failed: "翻訳に失敗しました。", notConfigured: "自動翻訳には DeepL の API キー（DEEPL_API_KEY）が必要です。",
-      listMismatch: "英語の項目数（{n}）と同じ行数が必要です。異なる場合、お客様向けサイトでは英語が表示されます。",
+      listMismatch: "上の項目数（{n}）と同じ行数が必要です。異なる場合、お客様向けサイトでは上の入力欄の文言が表示されます。",
+      source: "入力言語",
+      sourceHint: "上の入力欄は{lang}です。下の各言語はそこから翻訳されます。",
+      sourceEmpty: "先に上の入力欄に入力してから翻訳してください。",
     },
   },
 };

@@ -8,6 +8,22 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Large media (the per-language safety videos) lives in R2, not in the repo
+  // and not in Supabase Storage: R2 egress is free, and the files are handed to
+  // every guest at the last booking step.
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "p-rideon-media"
+    }
+  ],
+  "vars": {
+    // Public hostname the MEDIA bucket is served from, no trailing slash.
+    // Empty = uploads are refused and the admin shows "not configured".
+    // Set it here rather than in the dashboard: `wrangler deploy` overwrites
+    // dashboard plaintext vars with whatever this block says. See DEPLOY.md.
+    "MEDIA_PUBLIC_BASE_URL": ""
+  },
   // NEXT_PUBLIC_* are inlined at build time from the CI environment;
   // DEEPL_API_KEY is a runtime secret (set with `wrangler secret put` or in the dashboard).
   "observability": {

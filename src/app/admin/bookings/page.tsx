@@ -5,6 +5,7 @@ import { useAdminData } from "@/lib/adminStore";
 import { useAdminT } from "@/lib/adminI18n";
 import { supabase } from "@/lib/supabaseClient";
 import { Badge, Button, PageHeader, inputCls, yen } from "@/components/admin/ui";
+import { SafetyVideoSettings } from "@/components/admin/SafetyVideoSettings";
 
 function fmt(d: string | null) {
   if (!d) return "—";
@@ -89,6 +90,8 @@ export default function BookingsPage() {
 
       <NotifySettings />
 
+      <SafetyVideoSettings />
+
       {bookings.length === 0 ? (
         <div className="grid place-items-center rounded-xl border border-dashed border-mist bg-white px-6 py-16 text-center">
           <svg viewBox="0 0 24 24" className="h-10 w-10 text-mist" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -121,6 +124,14 @@ export default function BookingsPage() {
                     {b.licenseCountry && (
                       <span className="block text-[0.75rem] text-stone">{t.bookings.license}: {regionName(b.licenseCountry)}</span>
                     )}
+                    <span
+                      className={`block text-[0.75rem] ${b.safetyVideoAckAt ? "text-expressway" : "text-stone/70"}`}
+                      title={b.safetyVideoAckAt ? fmt(b.safetyVideoAckAt) : undefined}
+                    >
+                      {b.safetyVideoAckAt
+                        ? `✓ ${b.safetyVideoWatched ? t.bookings.video.ackedFull : t.bookings.video.acked}`
+                        : t.bookings.video.notAcked}
+                    </span>
                   </td>
                   <td className="hidden px-4 py-3 text-stone md:table-cell">{b.vehicleName}</td>
                   <td className="hidden px-4 py-3 text-stone xl:table-cell">

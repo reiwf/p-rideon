@@ -12,6 +12,8 @@ import {
   type DbBranch,
   type DbExtra,
   type DbBookingExtra,
+  type DbFaq,
+  type DbFaqQuery,
 } from "./supabaseClient";
 import { type VehicleClass } from "./data";
 import { type ContentI18n } from "./i18nContent";
@@ -74,6 +76,29 @@ export type Extra = {
   i18n: ContentI18n;
 };
 
+export type Faq = {
+  id: string;
+  topic: string;
+  question: string;
+  answer: string;
+  /** free-form match terms in any language */
+  keywords: string[];
+  sort: number;
+  active: boolean;
+  i18n: ContentI18n;
+};
+
+/** One logged visitor question (append-only) — what staff read to find gaps. */
+export type FaqQuery = {
+  id: string;
+  sessionId: string;
+  locale: string;
+  query: string;
+  outcome: string;
+  faqId: string | null;
+  createdAt: string;
+};
+
 export type Booking = {
   id: string;
   reference: string;
@@ -88,6 +113,10 @@ export type Booking = {
   status: string;
   extras: DbBookingExtra[];
   licenseCountry: string;
+  /** set when the guest acknowledged the safety video at booking time */
+  safetyVideoAckAt: string | null;
+  /** true only when they also played it to the end */
+  safetyVideoWatched: boolean;
   createdAt: string;
 };
 
@@ -98,6 +127,8 @@ export type AdminData = {
   branches: Branch[];
   extras: Extra[];
   bookings: Booking[];
+  faqs: Faq[];
+  faqQueries: FaqQuery[];
 };
 
 export const vehicleClasses: VehicleClass[] = ["kei", "compact", "hybrid", "suv", "minivan", "premium"];
@@ -141,6 +172,18 @@ const exToDb = (x: Extra) => ({
   name: x.name, description: x.description, price_per_day: x.pricePerDay, max_qty: x.maxQty,
   sort: x.sort, active: x.active, i18n: x.i18n ?? {},
 });
+const fqFromDb = (r: DbFaq): Faq => ({
+  id: r.id, topic: r.topic, question: r.question, answer: r.answer,
+  keywords: r.keywords ?? [], sort: r.sort, active: r.active, i18n: r.i18n ?? {},
+});
+const fqToDb = (f: Faq) => ({
+  topic: f.topic, question: f.question, answer: f.answer,
+  keywords: f.keywords, sort: f.sort, active: f.active, i18n: f.i18n ?? {},
+});
+const fqqFromDb = (r: DbFaqQuery): FaqQuery => ({
+  id: r.id, sessionId: r.session_id, locale: r.locale, query: r.query,
+  outcome: r.outcome, faqId: r.faq_id, createdAt: r.created_at,
+});
 const brFromDb =(r: DbBranch): Branch => ({ id: r.id, name: r.name, address: r.address, sort: r.sort, active: r.active });
 const brToDb = (b: Branch) => ({ name: b.name, address: b.address, sort: b.sort, active: b.active });
 
@@ -159,6 +202,9 @@ type Ctx = {
   removeBranch: (id: string) => Promise<boolean>;
   saveExtra: (x: Extra) => Promise<boolean>;
   removeExtra: (id: string) => Promise<boolean>;
+  saveFaq: (f: Faq) => Promise<boolean>;
+  removeFaq: (id: string) => Promise<boolean>;
+  removeFaqQuery: (id: string) => Promise<boolean>;
 };
 
 export const AdminContext = createContext<Ctx | null>(null);
@@ -169,7 +215,7 @@ export function useAdminData(): Ctx {
   return ctx;
 }
 
-const EMPTY: AdminData = { vehicles: [], ratePlans: [], insurances: [], branches: [], extras: [], bookings: [] };
+const EMPTY: AdminData = { vehicles: [], ratePlans: [], insurances: [], branches: [], extras: [], bookings: [], faqs: [], faqQueries: [] };
 
 /** Powers the AdminContext provider in AdminShell. */
 export function useAdminStore(): Ctx {
@@ -178,16 +224,19 @@ export function useAdminStore(): Ctx {
   const [data, setData] = useState<AdminData>(EMPTY);
 
   const refresh = useCallback(async () => {
-    const [veh, plans, ins, branches, extras, books] = await Promise.all([
+    const [veh, plans, ins, branches, extras, books, faqs, faqQueries] = await Promise.all([
       supabase.from("car_vehicles").select("*").order("sort", { ascending: true }),
       supabase.from("car_rate_plans").select("*").order("created_at", { ascending: true }),
       supabase.from("car_insurances").select("*").order("sort", { ascending: true }),
 supabase.from("car_branches").select("*").order("sort", { ascending: true }),
       supabase.from("car_extras").select("*").order("sort", { ascending: true }),
       supabase.from("car_bookings").select("*, car_vehicles(name)").order("created_at", { ascending: false }),
+      supabase.from("car_faqs").select("*").order("sort", { ascending: true }),
+      // newest first, capped: this is a review list, not an archive
+      supabase.from("car_faq_queries").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
 
-    const firstErr = veh.error || plans.error || ins.error || branches.error || extras.error || books.error;
+    const firstErr = veh.error || plans.error || ins.error || branches.error || extras.error || books.error || faqs.error || faqQueries.error;
     if (firstErr) {
       setError(firstErr.message);
       setReady(true);
@@ -202,6 +251,8 @@ supabase.from("car_branches").select("*").order("sort", { ascending: true }),
 branches: (branches.data as DbBranch[]).map(brFromDb),
       extras: (extras.data as DbExtra[]).map(exFromDb),
       bookings: (books.data as unknown as RawBooking[]).map(bFromDb),
+      faqs: (faqs.data as DbFaq[]).map(fqFromDb),
+      faqQueries: (faqQueries.data as DbFaqQuery[]).map(fqqFromDb),
     });
     setReady(true);
   }, []);
@@ -286,7 +337,30 @@ branches: (branches.data as DbBranch[]).map(brFromDb),
     return true;
   }, [refresh]);
 
-  return { ready, error, data, refresh, saveVehicle, removeVehicle, savePlan, removePlan, saveInsurance, removeInsurance, saveBranch, removeBranch, saveExtra, removeExtra };
+  const saveFaq = useCallback(async (f: Faq) => {
+    const res = f.id
+      ? await supabase.from("car_faqs").update(fqToDb(f)).eq("id", f.id)
+      : await supabase.from("car_faqs").insert(fqToDb(f));
+    if (res.error) { setError(res.error.message); return false; }
+    await refresh();
+    return true;
+  }, [refresh]);
+
+  const removeFaq = useCallback(async (id: string) => {
+    const res = await supabase.from("car_faqs").delete().eq("id", id);
+    if (res.error) { setError(res.error.message); return false; }
+    await refresh();
+    return true;
+  }, [refresh]);
+
+  const removeFaqQuery = useCallback(async (id: string) => {
+    const res = await supabase.from("car_faq_queries").delete().eq("id", id);
+    if (res.error) { setError(res.error.message); return false; }
+    await refresh();
+    return true;
+  }, [refresh]);
+
+  return { ready, error, data, refresh, saveVehicle, removeVehicle, savePlan, removePlan, saveInsurance, removeInsurance, saveBranch, removeBranch, saveExtra, removeExtra, saveFaq, removeFaq, removeFaqQuery };
 }
 
 // booking row from the joined select
@@ -294,11 +368,13 @@ type RawBooking = {
   id: string; reference: string; pickup_location: string | null; pickup_at: string | null;
   return_at: string | null; customer_name: string | null; customer_email: string | null;
   customer_phone: string | null; estimated_total: number; status: string; created_at: string; extras: DbBookingExtra[] | null; license_country: string | null;
+  safety_video_ack_at: string | null; safety_video_watched: boolean | null;
   car_vehicles: { name: string } | null;
 };
 const bFromDb = (r: RawBooking): Booking => ({
   id: r.id, reference: r.reference, vehicleName: r.car_vehicles?.name ?? "—",
   pickupLocation: r.pickup_location ?? "", pickupAt: r.pickup_at, returnAt: r.return_at,
 customerName: r.customer_name ?? "", customerEmail: r.customer_email ?? "", customerPhone: r.customer_phone ?? "",
-  estimatedTotal: r.estimated_total, status: r.status, extras: r.extras ?? [], licenseCountry: r.license_country ?? "", createdAt: r.created_at,
+  estimatedTotal: r.estimated_total, status: r.status, extras: r.extras ?? [], licenseCountry: r.license_country ?? "",
+  safetyVideoAckAt: r.safety_video_ack_at, safetyVideoWatched: Boolean(r.safety_video_watched), createdAt: r.created_at,
 });

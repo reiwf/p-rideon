@@ -7,6 +7,7 @@ import { Fleet } from "@/components/Fleet";
 import { Steps } from "@/components/Steps";
 import { Destinations } from "@/components/Destinations";
 import { SiteFooter } from "@/components/SiteFooter";
+import { FaqChat } from "@/components/FaqChat";
 import { fetchPublicVehicles, fetchPublicBranches } from "@/lib/publicData";
 import { defaultTripDates } from "@/lib/booking";
 import { cookies } from "next/headers";
@@ -34,6 +35,7 @@ export default async function Home() {
           <Steps />
         </main>
         <SiteFooter />
+        <FaqChat />
       </SearchProvider>
     </LanguageProvider>
   );

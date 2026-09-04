@@ -88,3 +88,84 @@ gives you CDN + TLS automatically.
   and `.dockerignore` from the repo.
 - **`output: "standalone"`** in `next.config.ts` is only used by the Docker/Fly
   build; OpenNext ignores it. Harmless to keep while both deploys exist.
+
+---
+
+# Safety videos on Cloudflare R2
+
+The precaution video at the last booking step is one MP4 **per language**
+(subtitles are burned into the picture). Every guest who reaches step 3 streams
+one, so the files live in **R2**: egress is free, versus metered bandwidth on
+Supabase Storage. The Worker holds the bucket as the `MEDIA` binding and staff
+upload through `/admin/bookings`.
+
+## One-time setup
+
+### 1. Create the bucket
+
+Dashboard → **R2** → **Create bucket** → name it **`p-rideon-media`**, location
+hint **Asia-Pacific (APAC)** (your guests are in Japan). Or from the terminal:
+
+```powershell
+npx wrangler r2 bucket create p-rideon-media --location apac
+```
+
+The name must match `wrangler.jsonc` → `r2_buckets[0].bucket_name`. The binding
+itself is already in the repo, so nothing to add there.
+
+### 2. Give the bucket a public hostname
+
+The bucket is private by default and the booking page needs to read from it.
+
+**Recommended — custom domain.** Bucket → **Settings** → **Public access** →
+**Custom domains** → **Connect domain** → `media.p-rideon.com`. The DNS record
+is created for you (the zone is already on Cloudflare for the Resend setup).
+This serves through the normal CDN, so the video is cached at the edge and each
+PoP fetches it from R2 once.
+
+**Quick alternative — r2.dev.** Same panel → **R2.dev subdomain** → **Allow
+Access**. You get `https://pub-<hash>.r2.dev`. Fine for testing; Cloudflare
+rate-limits it and advises against production traffic, and it is *not* cached.
+
+### 3. Point the app at that hostname
+
+Edit `wrangler.jsonc` and fill in the URL — **no trailing slash**:
+
+```jsonc
+"vars": {
+  "MEDIA_PUBLIC_BASE_URL": "https://media.p-rideon.com"
+},
+```
+
+Then push. It goes in the file rather than the dashboard because
+`wrangler deploy` overwrites dashboard-set plaintext variables with whatever
+this block contains. (Secrets like `DEEPL_API_KEY` are *not* touched.)
+
+While it is empty, `/api/media` answers 503 and the admin panel says the video
+storage is not configured — uploads are refused, but a URL can still be pasted.
+
+### 4. Upload the videos
+
+Deployed site → `/admin/bookings` → **Safety video**: one file per language,
+**Upload**, then **Save**. Max 100 MB each (Cloudflare's request-body cap).
+Guests see the file for their own language; English covers any language left
+empty. Clear all four to switch the requirement off entirely.
+
+## Notes
+
+- **Encoding:** H.264/AAC MP4, 720p is plenty. Subtitles burned in, one file per
+  language. Keep each under ~50 MB if you can — it is streamed on a hotel
+  wifi at checkout.
+- **Replacing a video** writes a new object under a new random key and leaves
+  the old one in place, so a guest who already has the booking page open is not
+  broken mid-flow. Old files can be deleted from the R2 dashboard later.
+- **Cost:** R2's free tier is 10 GB stored, 1 M writes and 10 M reads a month,
+  and **zero** egress. Four videos will not come close.
+- **Local dev:** `next.config.ts` calls `initOpenNextCloudflareForDev()`, so
+  `npm run dev` sees a *local* simulated bucket under `.wrangler/state`. Files
+  uploaded there are not reachable at the public hostname — do real uploads on
+  the deployed site.
+- **The old `car-videos` Supabase bucket** still holds the test upload from
+  before the move. Its public URL works if you paste it into the admin panel,
+  but re-uploading to R2 is what gets you the free egress. Delete the Supabase
+  bucket once nothing references it.

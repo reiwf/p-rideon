@@ -4,6 +4,7 @@ import { useI18n } from "./LanguageProvider";
 import { locales } from "@/lib/i18n";
 import { Pin, Clock } from "./icons";
 import { HeaderLockup } from "./Logo";
+import { SUPPORT_PHONE } from "@/lib/contact";
 
 export function SiteFooter() {
   const { t, locale, setLocale } = useI18n();
@@ -20,7 +21,7 @@ export function SiteFooter() {
           <ul className="mt-4 space-y-2.5 font-light text-ink/90">
             <li className="flex items-center gap-2.5"><Pin className="h-4 w-4 text-accent" />{t.footer.addr}</li>
             <li className="flex items-center gap-2.5"><Clock className="h-4 w-4 text-accent" />{t.footer.hours}</li>
-            <li className="tnum pl-[26px]">+81 6-0000-0000</li>
+            <li className="tnum pl-[26px]">{SUPPORT_PHONE}</li>
           </ul>
         </div>
 
