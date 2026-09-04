@@ -29,6 +29,12 @@ export type ContentI18n = {
   topic?: Translations;
   question?: Translations;
   answer?: Translations;
+  address?: Translations;
+  subject?: Translations;
+  intro?: Translations;
+  notice?: Translations;
+  closing?: Translations;
+  videoLabel?: Translations;
 };
 
 /** Localize a single string, falling back to the base text. Every locale is

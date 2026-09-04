@@ -45,7 +45,15 @@ export type Dict = {
   classes: Record<string, string>;
   steps: { eyebrow: string; title: string; items: { t: string; d: string }[] };
   dest: { eyebrow: string; title: string; sub: string; fromOsaka: string; drive: string; places: Record<"kyoto" | "nara" | "kobe" | "wakayama", string> };
-  footer: { tagline: string; hours: string; addr: string; rights: string; contact: string };
+  footer: {
+    tagline: string;
+    /** "{from}"/"{to}" are filled from the configured opening hours */
+    hours: string;
+    /** fallback address, used until one is set in /admin/settings */
+    addr: string;
+    rights: string;
+    contact: string;
+  };
   faq: {
     launch: string; title: string; intro: string; placeholder: string; send: string; close: string;
     chooseIntro: string; topicsIntro: string; topicPick: string; noMatch: string; contactIntro: string;
@@ -114,7 +122,7 @@ export const dict: Record<Locale, Dict> = {
       ],
     },
     dest: { eyebrow: "Where to", title: "Day trips from Osaka", sub: "Kansai is small and stunning — most of the region is an easy drive away.", fromOsaka: "from Osaka", drive: "drive", places: { kyoto: "Kyoto", nara: "Nara", kobe: "Kobe", wakayama: "Wakayama" } },
-    footer: { tagline: "Car rental for travelers exploring Osaka and the Kansai region.", hours: "Open daily 7:00–22:00", addr: "Chuo-ku, Osaka, Japan", rights: "All rights reserved.", contact: "Contact" },
+    footer: { tagline: "Car rental for travelers exploring Osaka and the Kansai region.", hours: "Open daily {from}–{to}", addr: "Chuo-ku, Osaka, Japan", rights: "All rights reserved.", contact: "Contact" },
     faq: {
       launch: "Help", title: "Help desk",
       intro: "Ask us anything about renting a car with us — booking, insurance, or driving in Japan.",
@@ -204,7 +212,7 @@ export const dict: Record<Locale, Dict> = {
       ],
     },
     dest: { eyebrow: "行き先", title: "大阪から日帰りで", sub: "関西はコンパクトで美しい。多くの名所が気軽なドライブ圏内。", fromOsaka: "大阪から", drive: "", places: { kyoto: "京都", nara: "奈良", kobe: "神戸", wakayama: "和歌山" } },
-    footer: { tagline: "大阪・関西を旅する方のためのレンタカー。", hours: "毎日 7:00–22:00 営業", addr: "大阪市中央区", rights: "All rights reserved.", contact: "お問い合わせ" },
+    footer: { tagline: "大阪・関西を旅する方のためのレンタカー。", hours: "毎日 {from}–{to} 営業", addr: "大阪市中央区", rights: "All rights reserved.", contact: "お問い合わせ" },
     faq: {
       launch: "ヘルプ", title: "ヘルプデスク",
       intro: "ご予約・保険・日本での運転について、お気軽にご質問ください。",
@@ -294,7 +302,7 @@ export const dict: Record<Locale, Dict> = {
       ],
     },
     dest: { eyebrow: "去哪儿", title: "从大阪出发的一日游", sub: "关西小巧而迷人，多数名胜都在轻松自驾范围内。", fromOsaka: "距大阪", drive: "车程", places: { kyoto: "京都", nara: "奈良", kobe: "神户", wakayama: "和歌山" } },
-    footer: { tagline: "为游览大阪与关西的旅客提供租车服务。", hours: "每日 7:00–22:00 营业", addr: "日本大阪市中央区", rights: "版权所有。", contact: "联系我们" },
+    footer: { tagline: "为游览大阪与关西的旅客提供租车服务。", hours: "每日 {from}–{to} 营业", addr: "日本大阪市中央区", rights: "版权所有。", contact: "联系我们" },
     faq: {
       launch: "帮助", title: "帮助中心",
       intro: "关于预订、保险或在日本驾车，欢迎随时提问。",
@@ -384,7 +392,7 @@ export const dict: Record<Locale, Dict> = {
       ],
     },
     dest: { eyebrow: "어디로", title: "오사카에서 떠나는 당일치기", sub: "간사이는 작지만 아름답습니다. 대부분의 명소가 가벼운 드라이브 거리.", fromOsaka: "오사카에서", drive: "운전", places: { kyoto: "교토", nara: "나라", kobe: "고베", wakayama: "와카야마" } },
-    footer: { tagline: "오사카와 간사이를 여행하는 분들을 위한 렌터카.", hours: "매일 7:00–22:00 영업", addr: "일본 오사카시 주오구", rights: "All rights reserved.", contact: "문의" },
+    footer: { tagline: "오사카와 간사이를 여행하는 분들을 위한 렌터카.", hours: "매일 {from}–{to} 영업", addr: "일본 오사카시 주오구", rights: "All rights reserved.", contact: "문의" },
     faq: {
       launch: "도움말", title: "헬프데스크",
       intro: "예약, 보험, 일본에서의 운전에 대해 무엇이든 물어보세요.",

@@ -49,6 +49,14 @@ In the Worker's **Settings → Variables and Secrets**, add:
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://vtvxgzlkelychcjvvkwz.supabase.co` | Plaintext |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the publishable key (see `.env.local`) | Plaintext |
 | `DEEPL_API_KEY` | your DeepL key (admin auto-translate) | **Secret** |
+| `SUPABASE_SERVICE_ROLE_KEY` | service role key (creating admin logins) | **Secret** |
+
+> **`SUPABASE_SERVICE_ROLE_KEY` bypasses RLS completely** — it can read and write
+> every table regardless of policy. Supabase dashboard → Project Settings → API
+> → `service_role`. It is used by one route only (`/api/staff`, to create admin
+> logins), must never be `NEXT_PUBLIC_*`, and must never be added to the **Build**
+> variables — build-time values get inlined into the browser bundle. Runtime
+> secret only. Without it the admin-users page simply says it is not configured.
 
 Then in **Settings → Build → Variables and secrets**, add the two
 `NEXT_PUBLIC_*` values again — Next.js inlines them at **build** time, so the

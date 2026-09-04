@@ -2,12 +2,6 @@ import { formatYen, type Vehicle } from "./data";
 import type { ContentI18n } from "./i18nContent";
 import type { Locale } from "./i18n";
 
-/** Bookable pick-up/return times: 07:00 → 22:00 in 30-minute steps. */
-export const rentalTimes = Array.from({ length: 31 }, (_, i) => {
-  const m = 7 * 60 + i * 30;
-  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-});
-
 /** dateISO (YYYY-MM-DD) shifted by n days, in local time. */
 export function addDaysISO(dateISO: string, n: number): string {
   const [y, m, d] = dateISO.split("-").map(Number);

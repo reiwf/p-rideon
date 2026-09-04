@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useI18n } from "./LanguageProvider";
 import { BottomSheet, useIsMobile, useMounted } from "./BottomSheet";
-import { SUPPORT_PHONE } from "@/lib/contact";
+import { DEFAULT_SETTINGS, buildRentalTimes, type SiteSettings } from "@/lib/siteSettings";
 import { Headset } from "./icons";
 import {
   matchFaq, faqAnswer, faqQuestion, faqTopics, faqsInTopic,
@@ -41,7 +41,7 @@ function newId(): string {
 
 type DbFaq = { id: string; topic: string; question: string; answer: string; keywords: string[] | null; i18n: Faq["i18n"] };
 
-export function FaqChat() {
+export function FaqChat({ settings = DEFAULT_SETTINGS }: { settings?: SiteSettings }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -63,7 +63,7 @@ export function FaqChat() {
 
       {open && (isMobile ? (
         <BottomSheet title={t.faq.title} onClose={() => setOpen(false)}>
-          <ChatBody />
+          <ChatBody settings={settings} />
         </BottomSheet>
       ) : (
         <div className="fixed bottom-5 right-5 z-[80] flex max-h-[min(34rem,80vh)] w-[23rem] flex-col overflow-hidden rounded-[18px] border border-hairline bg-surface shadow-[var(--shadow-card)]">
@@ -77,14 +77,14 @@ export function FaqChat() {
               <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
             </button>
           </div>
-          <ChatBody />
+          <ChatBody settings={settings} />
         </div>
       ))}
     </>
   );
 }
 
-function ChatBody() {
+function ChatBody({ settings }: { settings: SiteSettings }) {
   const { t, locale } = useI18n();
   const [faqs, setFaqs] = useState<Faq[] | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -189,6 +189,10 @@ function ChatBody() {
   }
 
   const topics = faqs ? faqTopics(faqs, locale) : [];
+  const openTimes = buildRentalTimes(settings.openTime, settings.closeTime, settings.stepMinutes);
+  const hoursLine = t.footer.hours
+    .replace("{from}", openTimes[0] ?? settings.openTime)
+    .replace("{to}", openTimes[openTimes.length - 1] ?? settings.closeTime);
 
   return (
     <>
@@ -216,10 +220,10 @@ function ChatBody() {
               {m.contact && (
                 <span className="mt-2 block">
                   <span className="block text-[0.78rem] text-muted">{t.faq.contactIntro}</span>
-                  <a href={`tel:${SUPPORT_PHONE.replace(/[^+\d]/g, "")}`} className="tnum mt-0.5 block font-medium text-accent hover:underline">
-                    {SUPPORT_PHONE}
+                  <a href={`tel:${settings.phone.replace(/[^+\d]/g, "")}`} className="tnum mt-0.5 block font-medium text-accent hover:underline">
+                    {settings.phone}
                   </a>
-                  <span className="block text-[0.78rem] text-muted">{t.footer.hours}</span>
+                  <span className="block text-[0.78rem] text-muted">{hoursLine}</span>
                 </span>
               )}
               {m.chips && m.chips.length > 0 && <ChipRow chips={m.chips} className="mt-2.5" />}

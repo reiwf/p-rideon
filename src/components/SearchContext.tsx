@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState } from "react";
 import { addDaysISO } from "@/lib/booking";
+import { DEFAULT_TIMES } from "@/lib/siteSettings";
 
 export type SearchState = {
   location: string;
@@ -13,13 +14,22 @@ export type SearchState = {
 
 type Ctx = SearchState & {
   branches: string[];
+  /** bookable times, derived from the operator's configured opening hours */
+  times: string[];
   set: (patch: Partial<SearchState>) => void;
   bookingHref: (vehicleId: string) => string;
 };
 
 const SearchCtx = createContext<Ctx | null>(null);
 
-export function SearchProvider({ children, initial, branches = [] }: { children: React.ReactNode; initial: SearchState; branches?: string[] }) {
+export function SearchProvider({
+  children, initial, branches = [], times = DEFAULT_TIMES,
+}: {
+  children: React.ReactNode;
+  initial: SearchState;
+  branches?: string[];
+  times?: string[];
+}) {
   const [s, setS] = useState<SearchState>(initial);
 
   const set = (patch: Partial<SearchState>) =>
@@ -43,7 +53,7 @@ export function SearchProvider({ children, initial, branches = [] }: { children:
     return `/book?${p.toString()}`;
   };
 
-  return <SearchCtx.Provider value={{ ...s, branches, set, bookingHref }}>{children}</SearchCtx.Provider>;
+  return <SearchCtx.Provider value={{ ...s, branches, times, set, bookingHref }}>{children}</SearchCtx.Provider>;
 }
 
 export function useSearch(): Ctx {

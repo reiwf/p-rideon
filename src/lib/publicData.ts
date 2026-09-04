@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { vehicles as fallbackVehicles, pickupPoints as fallbackBranches, type Vehicle, type VehicleClass } from "./data";
 import type { BookingBranch, BookingExtra, BookingInsurance, BookingRatePlan, SafetyVideo } from "./booking";
 import type { ContentI18n } from "./i18nContent";
+import { parseSettings, DEFAULT_SETTINGS, type SiteSettings } from "./siteSettings";
 
 function serverClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -71,6 +72,21 @@ export async function fetchPublicBranches(): Promise<string[]> {
   }
 }
 
+/** Opening hours + footer contact details (car_settings → `operation`).
+   Falls back to the built-in defaults so the site still renders a usable time
+   list when the row is missing or Supabase is unconfigured. */
+export async function fetchSiteSettings(): Promise<SiteSettings> {
+  const client = serverClient();
+  if (!client) return DEFAULT_SETTINGS;
+  try {
+    const { data, error } = await client.from("car_settings").select("value").eq("key", "operation").maybeSingle();
+    if (error || !data) return DEFAULT_SETTINGS;
+    return parseSettings(data.value);
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
 /** The precaution video config (car_settings → `safety_video`). Returns null
    when nothing is uploaded yet, which leaves the booking flow ungated —
    an unconfigured video must never block real reservations. */
@@ -102,6 +118,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
   branchInfo: BookingBranch[];
   extras: BookingExtra[];
   safetyVideo: SafetyVideo | null;
+  settings: SiteSettings;
 }> {
   const client = serverClient();
   if (!client || !vehicleId) {
@@ -109,7 +126,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
       vehicle: fallbackVehicles.find((v) => v.id === vehicleId) ?? null,
       insurances: [], ratePlans: [], branches: fallbackBranches,
       branchInfo: fallbackBranches.map((name) => ({ name, address: "" })), extras: [],
-      safetyVideo: null,
+      safetyVideo: null, settings: DEFAULT_SETTINGS,
     };
   }
 
@@ -117,7 +134,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
   // "not found" rather than letting the uuid cast error the whole query
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
 
-  const [vRes, iRes, pRes, bRes, xRes, safetyVideo] = await Promise.all([
+  const [vRes, iRes, pRes, bRes, xRes, safetyVideo, settings] = await Promise.all([
     isUuid
       ? client.from("car_vehicles").select(VEHICLE_COLUMNS).eq("id", vehicleId).eq("active", true).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -126,6 +143,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
     client.from("car_branches").select("name,address").eq("active", true).order("sort", { ascending: true }),
     client.from("car_extras").select("id,name,description,price_per_day,max_qty,i18n").eq("active", true).order("sort", { ascending: true }),
     fetchSafetyVideo(),
+    fetchSiteSettings(),
   ]);
 
   const firstErr = vRes.error || iRes.error || pRes.error || bRes.error || xRes.error;
@@ -154,5 +172,6 @@ export async function fetchBookingData(vehicleId: string): Promise<{
     branchInfo: branchInfo.length ? branchInfo : fallbackBranches.map((name) => ({ name, address: "" })),
     extras,
     safetyVideo,
+    settings,
   };
 }

@@ -11,10 +11,11 @@ export const adminLangs: { code: AdminLang; label: string }[] = [
 ];
 
 export type AdminDict = {
-  nav: { dashboard: string; vehicles: string; ratePlans: string; insurance: string; branches: string; extras: string; bookings: string; faq: string };
+  nav: { dashboard: string; vehicles: string; ratePlans: string; insurance: string; branches: string; extras: string; bookings: string; faq: string; settings: string; staff: string };
   common: {
     cancel: string; delete: string; edit: string; back: string; signOut: string; viewSite: string; loading: string;
     active: string; off: string; shown: string; hidden: string; published: string; status: string; perDay: string; untitled: string;
+    conflict: string;
   };
   login: { title: string; subtitle: string; email: string; password: string; signIn: string; signingIn: string; staffOnly: string; notConfigured: string; notAuthorized: string; enterBoth: string };
   dbError: string;
@@ -70,6 +71,30 @@ thRef: string; thCustomer: string; thVehicle: string; thPickup: string; thTotal:
     };
     status: { pending: string; confirmed: string; cancelled: string; completed: string };
   };
+  email: {
+    title: string; hint: string; save: string; saved: string;
+    subject: string; subjectHint: string; subjectPh: string;
+    intro: string; introHint: string; introPh: string;
+    notice: string; noticeHint: string; noticePh: string;
+    closing: string; closingHint: string; closingPh: string;
+    varsTitle: string; varsHint: string;
+    videoTitle: string; videoHint: string; videoLabel: string; videoLabelHint: string; videoLabelPh: string; videosHint: string;
+    testTitle: string; testHint: string; testSend: string; testSent: string;
+  };
+  staff: {
+    title: string; sub: string; add: string; addHint: string; create: string; empty: string;
+    thName: string; thEmail: string; thSince: string; you: string; password: string; passwordHint: string;
+    revoke: string; revokeTitle: string; revokeBody: string; revoked: string; created: string; promoted: string;
+    notConfigured: string; badEmail: string; weakPassword: string; selfRemove: string; lastStaff: string;
+  };
+  settings: {
+    title: string; sub: string; save: string; saved: string;
+    hoursTitle: string; hoursHint: string; openTime: string; closeTime: string;
+    step: string; stepHint: string; stepMinutes: string; preview: string; hoursInvalid: string;
+    contactTitle: string; contactHint: string;
+    phone: string; phoneHint: string; email: string; emailHint: string;
+    address: string; addressHint: string; addressPh: string;
+  };
   faq: {
     title: string; sub: string; add: string; empty: string;
     topic: string; topicHint: string; topicPh: string;
@@ -90,8 +115,8 @@ tr: {
 
 export const adminDict: Record<AdminLang, AdminDict> = {
   en: {
-    nav: { dashboard: "Dashboard", vehicles: "Vehicles", ratePlans: "Rate plans", insurance: "Insurance", branches: "Branches", extras: "Extras", bookings: "Bookings", faq: "FAQ" },
-    common: { cancel: "Cancel", delete: "Delete", edit: "Edit", back: "Back", signOut: "Sign out", viewSite: "View booking site", loading: "Loading…", active: "Active", off: "Off", shown: "Shown", hidden: "Hidden", published: "Published", status: "Status", perDay: "/ day", untitled: "Untitled" },
+    nav: { dashboard: "Dashboard", vehicles: "Vehicles", ratePlans: "Rate plans", insurance: "Insurance", branches: "Branches", extras: "Extras", bookings: "Bookings", faq: "FAQ", settings: "Settings", staff: "Admin users" },
+    common: { cancel: "Cancel", delete: "Delete", edit: "Edit", back: "Back", signOut: "Sign out", viewSite: "View booking site", loading: "Loading…", active: "Active", off: "Off", shown: "Shown", hidden: "Hidden", published: "Published", status: "Status", perDay: "/ day", untitled: "Untitled", conflict: "Someone else changed this while your page was open — reload before saving, or you will overwrite their change." },
     login: { title: "Admin console", subtitle: "Sign in to manage vehicles, rates and insurance.", email: "Email", password: "Password", signIn: "Sign in", signingIn: "Signing in…", staffOnly: "Staff accounts only. Contact your administrator for access.", notConfigured: "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local and restart the dev server.", notAuthorized: "This account is not authorized for the admin console.", enterBoth: "Enter your email and password." },
     dbError: "Couldn't reach the database:",
     dashboard: {
@@ -155,6 +180,46 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       },
       status: { pending: "pending", confirmed: "confirmed", cancelled: "cancelled", completed: "completed" },
     },
+    email: {
+      title: "Confirmation email", hint: "The email a customer receives when they book. Leave a field empty to keep the built-in wording. The layout and the booking details table are fixed.",
+      save: "Save email", saved: "Saved. The next booking uses this wording.",
+      subject: "Subject", subjectHint: "Shown in the inbox.", subjectPh: "Booking confirmed {{reference}} — P-rideon",
+      intro: "Opening line", introHint: "The sentence under the greeting.", introPh: "Your reservation is confirmed. You pay at the counter when you collect the car.",
+      notice: "Additional information", noticeHint: "Optional block at the end — opening hours, directions, anything operational. Basic HTML like <b> and <br> works.", noticePh: "Call us on +81 6-0000-0000 if you are delayed.",
+      closing: "Closing line", closingHint: "The footer line above the address.", closingPh: "Questions? Just reply to this email.",
+      varsTitle: "Variables", varsHint: "Type these into any field above and they are replaced with the booking's own details.",
+      videoTitle: "Include a video link", videoHint: "Adds a button to the email. This is the email's own video — separate from the safety video shown during booking.",
+      videoLabel: "Video button text", videoLabelHint: "", videoLabelPh: "Watch the video",
+      videosHint: "One file per language; the customer sees theirs, falling back to English. Leave a language empty to use the English one.",
+      testTitle: "Send a test", testHint: "Saves first, then sends a sample booking to this address using the wording above. Subject is prefixed [TEST].",
+      testSend: "Send test email", testSent: "Test sent to {email}.",
+    },
+    staff: {
+      title: "Admin users", sub: "Who can sign in to this console. Anyone listed here has full access.",
+      add: "Add admin user", create: "Create account", empty: "No admin users yet.",
+      addHint: "Creates the login straight away — no invite email. Give the person their password directly, and ask them to change it later from the Supabase account settings.",
+      thName: "Name", thEmail: "Email", thSince: "Added", you: "(you)",
+      password: "Temporary password", passwordHint: "At least 8 characters. Shown in plain text so you can copy it.",
+      revoke: "Revoke access", revokeTitle: "Revoke admin access?",
+      revokeBody: "{email} will no longer be able to sign in to this console. Their account itself is kept.",
+      revoked: "Access revoked.", created: "Account created.", promoted: "That email already had an account — admin access granted to it.",
+      notConfigured: "Account creation is not configured yet — SUPABASE_SERVICE_ROLE_KEY is missing. See DEPLOY.md.",
+      badEmail: "Enter a valid email address.", weakPassword: "The password must be at least 8 characters.",
+      selfRemove: "You can't revoke your own access.", lastStaff: "This is the last admin user — add another before removing this one.",
+    },
+    settings: {
+      title: "Settings", sub: "Opening hours and the contact details shown in the site footer.",
+      save: "Save settings", saved: "Saved. The site updates immediately.",
+      hoursTitle: "Opening hours",
+      hoursHint: "The times customers can choose for pick-up and return, on the homepage search and in the booking flow. Both ends are selectable.",
+      openTime: "Opens", closeTime: "Closes",
+      step: "Interval", stepHint: "Gap between selectable times.", stepMinutes: "{n} minutes",
+      preview: "Customers will see {n} times, {first} through {last}.",
+      hoursInvalid: "The closing time must be later than the opening time.",
+      contactTitle: "Contact details", contactHint: "Shown in the site footer and offered by the help desk when it has no answer.",
+      phone: "Phone", phoneHint: "Shown as a tap-to-call link.", email: "Email", emailHint: "Optional — hidden when empty.",
+      address: "Address", addressHint: "Leave empty to keep the built-in address.", addressPh: "Chuo-ku, Osaka, Japan",
+    },
     faq: {
       title: "FAQ", sub: "Answers the help-desk chat gives customers. Add match terms so a question is found however it's phrased.",
       add: "Add question", empty: "No questions yet. Add the ones customers ask most.",
@@ -182,8 +247,8 @@ export const adminDict: Record<AdminLang, AdminDict> = {
   },
 
   ja: {
-    nav: { dashboard: "ダッシュボード", vehicles: "車両", ratePlans: "料金プラン", insurance: "保険", branches: "店舗", extras: "オプション", bookings: "予約", faq: "よくある質問" },
-    common: { cancel: "キャンセル", delete: "削除", edit: "編集", back: "戻る", signOut: "ログアウト", viewSite: "予約サイトを見る", loading: "読み込み中…", active: "有効", off: "無効", shown: "表示中", hidden: "非表示", published: "公開中", status: "状態", perDay: "/ 日", untitled: "無題" },
+    nav: { dashboard: "ダッシュボード", vehicles: "車両", ratePlans: "料金プラン", insurance: "保険", branches: "店舗", extras: "オプション", bookings: "予約", faq: "よくある質問", settings: "設定", staff: "管理ユーザー" },
+    common: { cancel: "キャンセル", delete: "削除", edit: "編集", back: "戻る", signOut: "ログアウト", viewSite: "予約サイトを見る", loading: "読み込み中…", active: "有効", off: "無効", shown: "表示中", hidden: "非表示", published: "公開中", status: "状態", perDay: "/ 日", untitled: "無題", conflict: "このページを開いている間に別の場所で変更されました。上書きしてしまうため、保存前に再読み込みしてください。" },
     login: { title: "管理コンソール", subtitle: "車両・料金・保険を管理するにはログインしてください。", email: "メールアドレス", password: "パスワード", signIn: "ログイン", signingIn: "ログイン中…", staffOnly: "スタッフ専用です。アクセスは管理者にお問い合わせください。", notConfigured: "Supabaseが未設定です。.env.local に NEXT_PUBLIC_SUPABASE_URL と NEXT_PUBLIC_SUPABASE_ANON_KEY を追加し、開発サーバーを再起動してください。", notAuthorized: "このアカウントは管理コンソールへのアクセス権がありません。", enterBoth: "メールアドレスとパスワードを入力してください。" },
     dbError: "データベースに接続できませんでした：",
     dashboard: {
@@ -246,6 +311,46 @@ export const adminDict: Record<AdminLang, AdminDict> = {
         acked: "安全動画の確認済み", notAcked: "安全動画は未確認", ackedFull: "安全動画を最後まで視聴済み",
       },
       status: { pending: "保留中", confirmed: "確定", cancelled: "キャンセル", completed: "完了" },
+    },
+    email: {
+      title: "予約確定メール", hint: "お客様がご予約時に受け取るメールです。空欄にすると既定の文面が使われます。レイアウトと予約内容の表は固定です。",
+      save: "メールを保存", saved: "保存しました。次回のご予約からこの文面が使われます。",
+      subject: "件名", subjectHint: "受信トレイに表示されます。", subjectPh: "ご予約確定 {{reference}} — P-rideon",
+      intro: "冒頭の一文", introHint: "宛名の下に表示される文章です。", introPh: "ご予約が確定しました。お支払いはお受け取り時にカウンターでお願いします。",
+      notice: "追加のご案内", noticeHint: "任意。末尾に表示されます。営業時間や道順など運用上のご案内にどうぞ。<b> や <br> などの簡単なHTMLが使えます。", noticePh: "ご到着が遅れる場合は +81 6-0000-0000 までお電話ください。",
+      closing: "結びの一文", closingHint: "住所の上に表示されるフッターの一行です。", closingPh: "ご不明な点はこのメールにご返信ください。",
+      varsTitle: "差し込み変数", varsHint: "上の各欄に入力すると、その予約の内容に置き換わります。",
+      videoTitle: "動画リンクを載せる", videoHint: "メールにボタンを追加します。予約時に表示する安全動画とは別の、このメール専用の動画です。",
+      videoLabel: "ボタンの文言", videoLabelHint: "", videoLabelPh: "動画を見る",
+      videosHint: "言語ごとに1本ずつ。お客様にはご自身の言語の動画が表示されます（未登録の言語は英語）。",
+      testTitle: "テスト送信", testHint: "保存したうえで、上の文面でサンプル予約のメールをこのアドレスに送ります。件名の先頭に [TEST] が付きます。",
+      testSend: "テストメールを送信", testSent: "{email} にテスト送信しました。",
+    },
+    staff: {
+      title: "管理ユーザー", sub: "この管理コンソールにログインできるユーザーです。ここに表示されている全員がすべての操作を行えます。",
+      add: "管理ユーザーを追加", create: "アカウントを作成", empty: "管理ユーザーがまだいません。",
+      addHint: "招待メールは送らず、その場でログインを作成します。パスワードは直接お伝えのうえ、後日ご本人に変更していただいてください。",
+      thName: "氏名", thEmail: "メールアドレス", thSince: "追加日", you: "（あなた）",
+      password: "仮パスワード", passwordHint: "8文字以上。コピーできるようそのまま表示されます。",
+      revoke: "権限を削除", revokeTitle: "管理権限を削除しますか？",
+      revokeBody: "{email} はこの管理コンソールにログインできなくなります。アカウント自体は残ります。",
+      revoked: "権限を削除しました。", created: "アカウントを作成しました。", promoted: "このメールアドレスのアカウントは既に存在したため、管理権限を付与しました。",
+      notConfigured: "アカウント作成が未設定です — SUPABASE_SERVICE_ROLE_KEY がありません。DEPLOY.md をご確認ください。",
+      badEmail: "正しいメールアドレスを入力してください。", weakPassword: "パスワードは8文字以上にしてください。",
+      selfRemove: "ご自身の権限は削除できません。", lastStaff: "最後の管理ユーザーです。削除する前に別のユーザーを追加してください。",
+    },
+    settings: {
+      title: "設定", sub: "営業時間と、サイトのフッターに表示する連絡先です。",
+      save: "設定を保存", saved: "保存しました。サイトに即時反映されます。",
+      hoursTitle: "営業時間",
+      hoursHint: "お客様が出発・返却に選べる時間です。トップページの検索と予約画面の両方に反映されます。開始・終了の時刻も選択できます。",
+      openTime: "開店", closeTime: "閉店",
+      step: "間隔", stepHint: "選択できる時刻の間隔です。", stepMinutes: "{n}分",
+      preview: "お客様には{first}〜{last}の{n}件が表示されます。",
+      hoursInvalid: "閉店時刻は開店時刻より後にしてください。",
+      contactTitle: "連絡先", contactHint: "サイトのフッターに表示され、ヘルプデスクが回答できないときにもご案内します。",
+      phone: "電話番号", phoneHint: "タップで発信できるリンクになります。", email: "メールアドレス", emailHint: "任意 — 空欄の場合は表示されません。",
+      address: "住所", addressHint: "空欄の場合は既定の住所が表示されます。", addressPh: "大阪市中央区",
     },
     faq: {
       title: "よくある質問", sub: "ヘルプデスクがお客様に返す回答です。表現が違っても見つかるよう、検索語を登録してください。",

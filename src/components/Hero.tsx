@@ -4,11 +4,10 @@ import { useI18n } from "./LanguageProvider";
 import { useSearch } from "./SearchContext";
 import { Pin, Calendar } from "./icons";
 import { DateTimeField, SelectField } from "./SearchFields";
-import { rentalTimes as times } from "@/lib/booking";
 
 export function Hero() {
   const { t, locale } = useI18n();
-  const { location, pickupDate, pickupTime, returnDate, returnTime, branches, set } = useSearch();
+  const { location, pickupDate, pickupTime, returnDate, returnTime, branches, times, set } = useSearch();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();

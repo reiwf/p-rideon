@@ -19,7 +19,7 @@ import { Button, inputCls } from "./ui";
 import { Globe } from "@/components/icons";
 
 export type TransField =
-  | { key: "name" | "description" | "fuel" | "topic" | "question" | "answer"; label: string; base: string; list?: false }
+  | { key: "name" | "description" | "fuel" | "topic" | "question" | "answer" | "address" | "subject" | "intro" | "notice" | "closing" | "videoLabel"; label: string; base: string; list?: false }
   | { key: "features" | "tags"; label: string; base: string[]; list: true };
 
 const LANG_LABEL: Record<Locale, string> = { en: "English", ja: "日本語", zh: "中文", ko: "한국어" };

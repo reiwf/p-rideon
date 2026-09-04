@@ -12,8 +12,9 @@ import { tText, tList } from "@/lib/i18nContent";
 import { countryOptions } from "@/lib/countries";
 import { CompactVehicleCard, VehicleSheet } from "./VehicleSheet";
 import { SafetyVideoGate } from "./SafetyVideo";
+import { buildRentalTimes, clampToTimes, type SiteSettings } from "@/lib/siteSettings";
 import {
-  rentalDuration, quote, combineDateTime, splitDateTime, yen, rentalTimes as times, defaultTripDates, addDaysISO,
+  rentalDuration, quote, combineDateTime, splitDateTime, yen, defaultTripDates, addDaysISO,
   safetyVideoFor,
   type BookingInsurance, type BookingRatePlan, type BookingExtra, type BookingBranch, type ExtraSelection, type SafetyVideo,
 } from "@/lib/booking";
@@ -28,7 +29,7 @@ const inputBase =
 const label11 = "text-[0.66rem] font-medium uppercase tracking-[0.2em] text-muted";
 
 export function BookingFlow({
-  vehicle, insurances, ratePlans, branches, branchInfo, extras, safetyVideo, initial,
+  vehicle, insurances, ratePlans, branches, branchInfo, extras, safetyVideo, settings, initial,
 }: {
   vehicle: Vehicle;
   insurances: BookingInsurance[];
@@ -37,12 +38,21 @@ export function BookingFlow({
   branchInfo: BookingBranch[];
   extras: BookingExtra[];
   safetyVideo: SafetyVideo | null;
+  settings: SiteSettings;
   initial: { location: string; from: string; to: string };
 }) {
   const { t, locale } = useI18n();
   const [dflt] = useState(defaultTripDates);
-  const pu = splitDateTime(initial.from, dflt.pickupDate, "10:00");
-  const ret = splitDateTime(initial.to, dflt.returnDate, "10:00");
+  const times = useMemo(
+    () => buildRentalTimes(settings.openTime, settings.closeTime, settings.stepMinutes),
+    [settings.openTime, settings.closeTime, settings.stepMinutes],
+  );
+  // a URL-supplied or default time outside the opening hours would show a value
+  // the guest can no longer pick from the list
+  const pu = splitDateTime(initial.from, dflt.pickupDate, times[0] ?? "10:00");
+  const ret = splitDateTime(initial.to, dflt.returnDate, times[0] ?? "10:00");
+  pu.time = clampToTimes(pu.time, times);
+  ret.time = clampToTimes(ret.time, times);
   // return must land after pick-up, even for URL-supplied values
   if (`${ret.date}T${ret.time}` <= `${pu.date}T${pu.time}`) {
     ret.date = addDaysISO(pu.date, 1);
