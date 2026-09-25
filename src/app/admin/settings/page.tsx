@@ -9,6 +9,7 @@ import { useAdminT } from "@/lib/adminI18n";
 import { Button, Field, PageHeader, inputCls } from "@/components/admin/ui";
 import { TranslationsPanel } from "@/components/admin/Translatable";
 import { BookingEmailSettings } from "@/components/admin/BookingEmailSettings";
+import { PaymentSettings } from "@/components/admin/PaymentSettings";
 import { DEFAULT_SETTINGS, buildRentalTimes, parseSettings, type SiteSettings } from "@/lib/siteSettings";
 import { loadSetting, saveSetting } from "@/lib/settingsRow";
 
@@ -56,6 +57,8 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title={s.title} sub={s.sub} />
+
+      <PaymentSettings />
 
       <div className="mb-6 rounded-xl border border-mist bg-white p-5 shadow-[var(--shadow-card)]">
         <p className="text-[0.95rem] font-semibold text-ink">{s.hoursTitle}</p>

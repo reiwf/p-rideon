@@ -10,9 +10,12 @@ import { Button, Badge, Field, Modal, PageHeader, inputCls, yen } from "@/compon
 import { TranslationsPanel } from "@/components/admin/Translatable";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 
+type FormMode = "new" | "edit" | "copy";
+
 function emptyVehicle(): AdminVehicle {
   return {
     id: "",
+    plateNumber: "",
     name: "",
     jp: "",
     cls: "compact",
@@ -25,6 +28,7 @@ function emptyVehicle(): AdminVehicle {
     tags: [],
     hue: classHue.compact,
     active: true,
+    sort: 0,
     i18n: {},
     images: [],
   };
@@ -35,13 +39,46 @@ export default function VehiclesPage() {
   const { t } = useAdminT();
   const [editing, setEditing] = useState<AdminVehicle | null>(null);
   const [confirm, setConfirm] = useState<AdminVehicle | null>(null);
-  const [isNew, setIsNew] = useState(false);
+  const [mode, setMode] = useState<FormMode>("new");
+  /** the car a copy was taken from, named in the form's hint */
+  const [copiedFrom, setCopiedFrom] = useState("");
+  // a copy has no id yet, so the id alone cannot key the form — this makes
+  // every open a fresh mount, even two copies in a row
+  const [formSeq, setFormSeq] = useState(0);
 
   const [trBusy, setTrBusy] = useState(false);
   const [trMsg, setTrMsg] = useState("");
 
-  function openNew() { setEditing(emptyVehicle()); setIsNew(true); }
-  function openEdit(v: AdminVehicle) { setEditing({ ...v }); setIsNew(false); }
+  function openNew() {
+    setEditing(emptyVehicle());
+    setMode("new");
+    setFormSeq((n) => n + 1);
+  }
+
+  function openEdit(v: AdminVehicle) {
+    setEditing({ ...v });
+    setMode("edit");
+    setFormSeq((n) => n + 1);
+  }
+
+  /** Duplicate a car's whole setup for a second vehicle of the same type.
+      Everything carries over except the identity: a copy is a new row, and
+      the plate is deliberately blank because no two cars can share one. */
+  function openCopy(v: AdminVehicle) {
+    setEditing({
+      ...v,
+      id: "",
+      plateNumber: "",
+      // own copies of the mutable collections, so editing the duplicate can
+      // never reach back into the car it came from
+      tags: [...v.tags],
+      images: [...v.images],
+      i18n: structuredClone(v.i18n),
+    });
+    setCopiedFrom(v.plateNumber.trim() || v.name.trim() || t.common.untitled);
+    setMode("copy");
+    setFormSeq((n) => n + 1);
+  }
 
   /** Fill missing ja/zh/ko translations of tags + fuel for every vehicle (DeepL).
       Existing translations are preserved. */
@@ -115,7 +152,7 @@ export default function VehiclesPage() {
         <table className="w-full min-w-[34rem] text-sm">
           <thead className="border-b border-mist bg-paper-dim/40 text-left text-[0.72rem] uppercase tracking-wide text-stone">
             <tr>
-              <th className="px-4 py-3 font-semibold">{t.vehicles.thVehicle}</th>
+              <th className="px-4 py-3 font-semibold">{t.vehicles.thPlate}</th>
               <th className="hidden px-4 py-3 font-semibold sm:table-cell">{t.vehicles.thClass}</th>
               <th className="hidden px-4 py-3 font-semibold md:table-cell">{t.vehicles.thSeats}</th>
               <th className="px-4 py-3 text-right font-semibold">{t.vehicles.thRate}</th>
@@ -131,9 +168,11 @@ export default function VehiclesPage() {
                     <span className="grid h-10 w-16 shrink-0 place-items-center rounded-md border border-mist bg-paper">
                       <CarMark cls={v.cls} hue={v.hue} className="h-8 w-12" />
                     </span>
-                    <span>
-                      <span className="block font-semibold text-ink">{v.name || t.common.untitled}</span>
-                      <span className="block text-[0.75rem] text-stone">{v.jp}</span>
+                    <span className="min-w-0">
+                      <span className={`block font-semibold ${v.plateNumber.trim() ? "font-mono tracking-wide text-ink" : "text-stone italic"}`}>
+                        {v.plateNumber.trim() || t.vehicles.noPlate}
+                      </span>
+                      <span className="block truncate text-[0.75rem] text-stone">{v.name || t.common.untitled}</span>
                     </span>
                   </div>
                 </td>
@@ -144,6 +183,7 @@ export default function VehiclesPage() {
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" className="px-2.5 py-1.5" onClick={() => openEdit(v)}>{t.common.edit}</Button>
+                    <Button variant="ghost" className="px-2.5 py-1.5" title={t.vehicles.copyHintShort} onClick={() => openCopy(v)}>{t.vehicles.copy}</Button>
                     <Button variant="subtle" className="px-2.5 py-1.5" onClick={() => setConfirm(v)}>{t.common.delete}</Button>
                   </div>
                 </td>
@@ -157,7 +197,15 @@ export default function VehiclesPage() {
       </div>
 
       {editing && (
-        <VehicleForm key={editing.id || "new"} value={editing} isNew={isNew} onClose={() => setEditing(null)} onSave={async (v) => { if (await saveVehicle(v)) setEditing(null); }} />
+        <VehicleForm
+          key={formSeq}
+          value={editing}
+          mode={mode}
+          copiedFrom={copiedFrom}
+          fleet={data.vehicles}
+          onClose={() => setEditing(null)}
+          onSave={async (v) => { if (await saveVehicle(v)) setEditing(null); }}
+        />
       )}
 
       {confirm && (
@@ -173,26 +221,66 @@ export default function VehiclesPage() {
   );
 }
 
-function VehicleForm({ value, isNew, onClose, onSave }: { value: AdminVehicle; isNew: boolean; onClose: () => void; onSave: (v: AdminVehicle) => void }) {
+function VehicleForm({ value, mode, copiedFrom, fleet, onClose, onSave }: {
+  value: AdminVehicle;
+  mode: FormMode;
+  copiedFrom: string;
+  fleet: AdminVehicle[];
+  onClose: () => void;
+  onSave: (v: AdminVehicle) => void;
+}) {
   const { t } = useAdminT();
+  // a copy saves as a new row, so it behaves like "add" everywhere but the title
+  const isNew = mode !== "edit";
   const [v, setV] = useState<AdminVehicle>(value);
+  const [err, setErr] = useState("");
   const set = <K extends keyof AdminVehicle>(k: K, val: AdminVehicle[K]) => setV((s) => ({ ...s, [k]: val }));
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!v.name.trim()) return;
-    onSave({ ...v, hue: v.hue || classHue[v.cls] });
+    const plate = v.plateNumber.trim();
+    if (!plate) { setErr(t.vehicles.plateRequired); return; }
+    if (!v.name.trim()) { setErr(t.vehicles.modelRequired); return; }
+    // the database enforces this too; catching it here gives staff a readable
+    // message instead of a unique-index violation
+    if (fleet.some((o) => o.id !== v.id && o.plateNumber.trim().toLowerCase() === plate.toLowerCase())) {
+      setErr(t.vehicles.plateTaken);
+      return;
+    }
+    setErr("");
+    onSave({ ...v, plateNumber: plate, hue: v.hue || classHue[v.cls] });
   }
 
   return (
     <Modal
-      title={isNew ? t.vehicles.formAdd : t.vehicles.formEdit}
+      title={mode === "edit" ? t.vehicles.formEdit : mode === "copy" ? t.vehicles.formCopy : t.vehicles.formAdd}
       onClose={onClose}
       footer={<><Button variant="ghost" type="button" onClick={onClose}>{t.common.cancel}</Button><Button type="submit" form="veh-form">{isNew ? t.vehicles.saveAdd : t.vehicles.saveEdit}</Button></>}
     >
       <form id="veh-form" onSubmit={submit} className="space-y-4">
+        {mode === "copy" && (
+          <p className="rounded-lg border border-expressway/30 bg-expressway/8 px-3 py-2.5 text-[0.78rem] leading-[1.5] text-ink">
+            {t.vehicles.copyHint.replace("{name}", copiedFrom)}
+          </p>
+        )}
+
+        {/* the plate identifies this one physical car — it is the row title in
+            this console and the row label on the fleet timeline, and it is
+            never sent to the public site */}
+        <Field label={t.vehicles.plate} hint={t.vehicles.plateHint}>
+          <input
+            className={`${inputCls} font-mono tracking-wide`}
+            value={v.plateNumber}
+            onChange={(e) => { set("plateNumber", e.target.value); setErr(""); }}
+            placeholder={t.vehicles.platePh}
+            autoFocus={isNew}
+          />
+        </Field>
+
+        {err && <p className="text-[0.78rem] text-signal">{err}</p>}
+
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t.vehicles.modelName}><input className={inputCls} value={v.name} onChange={(e) => set("name", e.target.value)} placeholder={t.vehicles.modelPh} /></Field>
+          <Field label={t.vehicles.modelName} hint={t.vehicles.modelHint}><input className={inputCls} value={v.name} onChange={(e) => set("name", e.target.value)} placeholder={t.vehicles.modelPh} /></Field>
           <Field label={t.vehicles.jpName}><input className={inputCls} value={v.jp} onChange={(e) => set("jp", e.target.value)} placeholder={t.vehicles.jpPh} /></Field>
         </div>
 

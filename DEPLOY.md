@@ -49,7 +49,10 @@ In the Worker's **Settings → Variables and Secrets**, add:
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://vtvxgzlkelychcjvvkwz.supabase.co` | Plaintext |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the publishable key (see `.env.local`) | Plaintext |
 | `DEEPL_API_KEY` | your DeepL key (admin auto-translate) | **Secret** |
-| `SUPABASE_SERVICE_ROLE_KEY` | service role key (creating admin logins) | **Secret** |
+| `SUPABASE_SERVICE_ROLE_KEY` | service role key (admin logins, Stripe webhook) | **Secret** |
+| `STRIPE_SECRET_KEY` | Stripe secret key — only needed for Pay-before-book | **Secret** |
+| `STRIPE_WEBHOOK_SECRET` | signing secret of the webhook endpoint below | **Secret** |
+| `NEXT_PUBLIC_SITE_URL` | `https://your-domain` — where Stripe returns guests | Plaintext |
 
 > **`SUPABASE_SERVICE_ROLE_KEY` bypasses RLS completely** — it can read and write
 > every table regardless of policy. Supabase dashboard → Project Settings → API
@@ -177,3 +180,58 @@ empty. Clear all four to switch the requirement off entirely.
   before the move. Its public URL works if you paste it into the admin panel,
   but re-uploading to R2 is what gets you the free egress. Delete the Supabase
   bucket once nothing references it.
+
+
+# Online payment (Pay-before-book)
+
+Off by default. While it is off the site behaves exactly as before and none of
+the Stripe variables are needed. Switch it on at **/admin/settings → Online
+payment**; the console refuses to arm the switch until the server reports all
+three keys present, because turning it on without them would break every
+reservation.
+
+## How a paid reservation works
+
+1. The guest finishes the booking form. `car_create_booking` creates the row
+   with status `awaiting_payment`. **This already holds the car** — the overlap
+   constraint counts it — but for 30 minutes only.
+2. The browser calls `/api/checkout`, which looks the price up **in the
+   database** and opens a Stripe Checkout session. The browser never states an
+   amount.
+3. Stripe returns the guest to `/book/complete`, which asks the database what
+   actually happened. A guest editing that URL changes nothing.
+4. `/api/stripe/webhook` is the **only** thing that confirms a booking. It
+   verifies the Stripe signature, then calls `car_mark_paid` with the service
+   role. That call is idempotent, and refuses to confirm if Stripe collected
+   less than the booking's price.
+5. If the guest never pays, the hold lapses. The next booking attempt sweeps it
+   (`car_release_expired_holds`) and the car goes back on sale.
+
+The confirmation email waits for payment: the trigger stays silent on an
+`awaiting_payment` insert and fires on the transition to `confirmed`.
+
+## Setting it up
+
+1. **Keys.** Stripe dashboard → Developers → API keys. Use the **test** key
+   while trying this out; the connected account is currently in test mode.
+2. **Webhook endpoint.** Developers → Webhooks → Add endpoint, pointing at
+   `https://your-domain/api/stripe/webhook`. Subscribe to
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+   `checkout.session.async_payment_failed` and `checkout.session.expired`.
+   Copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+3. **Locally**, forward events instead of exposing your machine:
+   ```bash
+   stripe listen --forward-to localhost:3100/api/stripe/webhook
+   ```
+   That prints a `whsec_...` to use as `STRIPE_WEBHOOK_SECRET` in `.env.local`.
+
+## Notes
+
+- **Yen is a zero-decimal currency.** Amounts go to Stripe as whole yen —
+  `62700` means ¥62,700. Never multiply by 100.
+- Signature verification uses `constructEventAsync` with a Web Crypto provider.
+  The synchronous `constructEvent` uses Node crypto and throws on Workers.
+- Card, Apple Pay, Link, Alipay and WeChat Pay are enabled on the account. JCB,
+  Konbini and PayPay are not yet available on it — worth enabling in the Stripe
+  dashboard for Japanese and Chinese guests. That is a dashboard change, not a
+  code change.

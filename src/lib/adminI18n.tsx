@@ -11,7 +11,7 @@ export const adminLangs: { code: AdminLang; label: string }[] = [
 ];
 
 export type AdminDict = {
-  nav: { dashboard: string; vehicles: string; ratePlans: string; insurance: string; branches: string; extras: string; bookings: string; faq: string; settings: string; staff: string };
+  nav: { dashboard: string; vehicles: string; calendar: string; ratePlans: string; insurance: string; branches: string; extras: string; bookings: string; faq: string; settings: string; staff: string };
   common: {
     cancel: string; delete: string; edit: string; back: string; signOut: string; viewSite: string; loading: string;
     active: string; off: string; shown: string; hidden: string; published: string; status: string; perDay: string; untitled: string;
@@ -28,8 +28,11 @@ export type AdminDict = {
   };
   vehicles: {
     title: string; sub: string; add: string;
-    thVehicle: string; thClass: string; thSeats: string; thRate: string; empty: string;
-    formAdd: string; formEdit: string; modelName: string; modelPh: string; jpName: string; jpPh: string;
+    thVehicle: string; thPlate: string; thClass: string; thSeats: string; thRate: string; empty: string;
+    plate: string; plateHint: string; platePh: string; noPlate: string;
+    plateRequired: string; plateTaken: string; modelRequired: string; modelHint: string;
+    copy: string; copyHint: string; copyHintShort: string;
+    formAdd: string; formEdit: string; formCopy: string; modelName: string; modelPh: string; jpName: string; jpPh: string;
     cls: string; transmission: string; auto: string; manual: string; seats: string; bags: string; fuel: string;
     dailyRate: string; dailyRateHint: string; extHour: string; extHourHint: string; tags: string; tagsHint: string; publishedLabel: string;
     saveAdd: string; saveEdit: string; deleteTitle: string; deleteBody: string;
@@ -69,7 +72,9 @@ thRef: string; thCustomer: string; thVehicle: string; thPickup: string; thTotal:
       strictTitle: string; strictOn: string; strictOff: string;
       acked: string; notAcked: string; ackedFull: string;
     };
-    status: { pending: string; confirmed: string; cancelled: string; completed: string };
+    status: { pending: string; confirmed: string; cancelled: string; completed: string; awaiting_payment: string };
+    thPayment: string;
+    pay: { not_required: string; awaiting: string; paid: string; failed: string; refunded: string };
   };
   email: {
     title: string; hint: string; save: string; saved: string;
@@ -111,11 +116,24 @@ tr: {
     heading: string; hint: string; auto: string; translating: string; failed: string; notConfigured: string; listMismatch: string;
     source: string; sourceHint: string; sourceEmpty: string;
   };
+  payments: {
+    title: string; hint: string; toggleLabel: string; toggleHint: string;
+    save: string; saved: string;
+    onWarning: string; checking: string; ready: string; notReady: string; missing: string;
+  };
+  calendar: {
+    title: string; sub: string;
+    today: string; prev: string; next: string; window: string; days: string;
+    legend: string; free: string; freeOf: string; soldOut: string; noCars: string;
+    empty: string; emptyBody: string; noPlate: string;
+    overlap: string; overlapHint: string;
+    barUnassigned: string; tipRef: string; tipPickup: string; tipReturn: string; tipTotal: string; tipEmail: string;
+  };
 };
 
 export const adminDict: Record<AdminLang, AdminDict> = {
   en: {
-    nav: { dashboard: "Dashboard", vehicles: "Vehicles", ratePlans: "Rate plans", insurance: "Insurance", branches: "Branches", extras: "Extras", bookings: "Bookings", faq: "FAQ", settings: "Settings", staff: "Admin users" },
+    nav: { dashboard: "Dashboard", vehicles: "Vehicles", calendar: "Fleet timeline", ratePlans: "Rate plans", insurance: "Insurance", branches: "Branches", extras: "Extras", bookings: "Bookings", faq: "FAQ", settings: "Settings", staff: "Admin users" },
     common: { cancel: "Cancel", delete: "Delete", edit: "Edit", back: "Back", signOut: "Sign out", viewSite: "View booking site", loading: "Loading…", active: "Active", off: "Off", shown: "Shown", hidden: "Hidden", published: "Published", status: "Status", perDay: "/ day", untitled: "Untitled", conflict: "Someone else changed this while your page was open — reload before saving, or you will overwrite their change." },
     login: { title: "Admin console", subtitle: "Sign in to manage vehicles, rates and insurance.", email: "Email", password: "Password", signIn: "Sign in", signingIn: "Signing in…", staffOnly: "Staff accounts only. Contact your administrator for access.", notConfigured: "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local and restart the dev server.", notAuthorized: "This account is not authorized for the admin console.", enterBoth: "Enter your email and password." },
     dbError: "Couldn't reach the database:",
@@ -128,9 +146,15 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       savedNote: "Changes save to the live database and appear on the booking site immediately.",
     },
     vehicles: {
-      title: "Vehicles", sub: "The fleet tourists can choose from. Hidden cars don't appear on the booking site.", add: "+ Add vehicle",
-      thVehicle: "Vehicle", thClass: "Class", thSeats: "Seats", thRate: "Rate / day", empty: "No vehicles yet. Add your first car to start.",
-      formAdd: "Add vehicle", formEdit: "Edit vehicle", modelName: "Model name", modelPh: "Toyota Yaris", jpName: "Japanese name", jpPh: "トヨタ ヤリス",
+      title: "Vehicles", sub: "One row per physical car. Cars sharing a model name and transmission are sold as one type on the booking site.", add: "+ Add vehicle",
+      thVehicle: "Vehicle", thPlate: "Plate", thClass: "Class", thSeats: "Seats", thRate: "Rate / day", empty: "No vehicles yet. Add your first car to start.",
+      plate: "Plate number", plateHint: "Identifies this one car. Staff only — never shown on the booking site.", platePh: "なにわ 300 あ 12-34", noPlate: "No plate set",
+      plateRequired: "Enter the plate number of this car.", plateTaken: "Another car already uses that plate.", modelRequired: "Enter the model name.",
+      modelHint: "Cars with the same model name and transmission form one bookable type.",
+      copy: "Copy",
+      copyHint: "Copied from {name}. Everything below matches it — give this car its own plate number and save.",
+      copyHintShort: "Add another car with these settings",
+      formAdd: "Add vehicle", formEdit: "Edit vehicle", formCopy: "Copy vehicle", modelName: "Model name", modelPh: "Toyota Yaris", jpName: "Japanese name", jpPh: "トヨタ ヤリス",
       cls: "Class", transmission: "Transmission", auto: "Automatic (AT)", manual: "Manual (MT)", seats: "Seats", bags: "Bags", fuel: "Fuel",
       dailyRate: "Daily rate (JPY)", dailyRateHint: "Base price per day before any rate-plan discount.", extHour: "Hourly extension (JPY)", extHourHint: "Per started hour beyond full 24h days, capped at the daily rate. 0 = charge a full extra day.", tags: "Tags", tagsHint: "Comma-separated highlights shown on the card (e.g. Popular, ETC card).", publishedLabel: "Published — show on the booking site",
       saveAdd: "Add vehicle", saveEdit: "Save changes", deleteTitle: "Delete vehicle", deleteBody: "Remove this vehicle from the fleet? This can't be undone.",
@@ -178,7 +202,9 @@ export const adminDict: Record<AdminLang, AdminDict> = {
         strictOff: "Off — the customer must still tick the acknowledgement, but can confirm without finishing the video.",
         acked: "Safety video acknowledged", notAcked: "Safety video not acknowledged", ackedFull: "Safety video watched in full",
       },
-      status: { pending: "pending", confirmed: "confirmed", cancelled: "cancelled", completed: "completed" },
+      status: { pending: "pending", confirmed: "confirmed", cancelled: "cancelled", completed: "completed", awaiting_payment: "awaiting payment" },
+      thPayment: "Payment",
+      pay: { not_required: "at counter", awaiting: "awaiting", paid: "paid", failed: "failed", refunded: "refunded" },
     },
     email: {
       title: "Confirmation email", hint: "The email a customer receives when they book. Leave a field empty to keep the built-in wording. The layout and the booking details table are fixed.",
@@ -236,6 +262,28 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       thWhen: "When", thQuery: "Question", thLang: "Lang", thOutcome: "Result",
       outcome: { answer: "answered", choose: "offered choices", topics: "no answer", handoff: "no answer" },
     },
+    payments: {
+      title: "Online payment",
+      hint: "With this on, a reservation only holds the car for 30 minutes while the guest pays by card. It is confirmed when Stripe reports the payment, not before.",
+      toggleLabel: "Pay before book — require payment to confirm a reservation",
+      toggleHint: "Off: guests reserve now and pay at the counter, as today.",
+      save: "Save", saved: "Saved.",
+      onWarning: "Switching this on takes real money from guests. Test a booking end to end first.",
+      checking: "Checking Stripe…",
+      ready: "Stripe is configured on the server.",
+      notReady: "Stripe is not ready — do not switch this on yet.",
+      missing: "Missing on the server: {keys}. See DEPLOY.md.",
+    },
+    calendar: {
+      title: "Fleet timeline", sub: "Every car by plate, and the days it is out on rental.",
+      today: "Today", prev: "Earlier", next: "Later", window: "Window", days: "{n} days",
+      legend: "Booking status", free: "free", freeOf: "{free} of {total} free", soldOut: "Fully booked", noCars: "No cars",
+      empty: "Nothing to show yet", emptyBody: "Add a vehicle with a plate number and its rentals will appear here.",
+      noPlate: "No plate",
+      overlap: "Overlap", overlapHint: "Two rentals share this car. The booking site cannot create this — check whether staff edited a booking by hand.",
+      barUnassigned: "No car assigned",
+      tipRef: "Reference", tipPickup: "Pick-up", tipReturn: "Return", tipTotal: "Total", tipEmail: "Email",
+    },
     tr: {
       heading: "Translations", hint: "Shown on the customer site. A language left blank falls back to the text you typed above.",
       auto: "Auto-translate", translating: "Translating…", failed: "Translation failed.", notConfigured: "Auto-translate needs a DeepL API key (DEEPL_API_KEY).",
@@ -247,7 +295,7 @@ export const adminDict: Record<AdminLang, AdminDict> = {
   },
 
   ja: {
-    nav: { dashboard: "ダッシュボード", vehicles: "車両", ratePlans: "料金プラン", insurance: "保険", branches: "店舗", extras: "オプション", bookings: "予約", faq: "よくある質問", settings: "設定", staff: "管理ユーザー" },
+    nav: { dashboard: "ダッシュボード", vehicles: "車両", calendar: "車両タイムライン", ratePlans: "料金プラン", insurance: "保険", branches: "店舗", extras: "オプション", bookings: "予約", faq: "よくある質問", settings: "設定", staff: "管理ユーザー" },
     common: { cancel: "キャンセル", delete: "削除", edit: "編集", back: "戻る", signOut: "ログアウト", viewSite: "予約サイトを見る", loading: "読み込み中…", active: "有効", off: "無効", shown: "表示中", hidden: "非表示", published: "公開中", status: "状態", perDay: "/ 日", untitled: "無題", conflict: "このページを開いている間に別の場所で変更されました。上書きしてしまうため、保存前に再読み込みしてください。" },
     login: { title: "管理コンソール", subtitle: "車両・料金・保険を管理するにはログインしてください。", email: "メールアドレス", password: "パスワード", signIn: "ログイン", signingIn: "ログイン中…", staffOnly: "スタッフ専用です。アクセスは管理者にお問い合わせください。", notConfigured: "Supabaseが未設定です。.env.local に NEXT_PUBLIC_SUPABASE_URL と NEXT_PUBLIC_SUPABASE_ANON_KEY を追加し、開発サーバーを再起動してください。", notAuthorized: "このアカウントは管理コンソールへのアクセス権がありません。", enterBoth: "メールアドレスとパスワードを入力してください。" },
     dbError: "データベースに接続できませんでした：",
@@ -260,9 +308,15 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       savedNote: "変更はそのままデータベースに保存され、予約サイトに即時反映されます。",
     },
     vehicles: {
-      title: "車両", sub: "お客様が選べる車両です。非表示の車は予約サイトに表示されません。", add: "＋ 車両を追加",
-      thVehicle: "車両", thClass: "クラス", thSeats: "乗車", thRate: "日額", empty: "車両がまだありません。最初の車を追加しましょう。",
-      formAdd: "車両を追加", formEdit: "車両を編集", modelName: "車種名", modelPh: "トヨタ ヤリス", jpName: "日本語名", jpPh: "トヨタ ヤリス",
+      title: "車両", sub: "1行が実車1台です。車種名とミッションが同じ車は、予約サイトでは1つの車種としてまとめて販売されます。", add: "＋ 車両を追加",
+      thVehicle: "車両", thPlate: "ナンバー", thClass: "クラス", thSeats: "乗車", thRate: "日額", empty: "車両がまだありません。最初の車を追加しましょう。",
+      plate: "ナンバープレート", plateHint: "この1台を特定する番号です。管理画面のみで使用し、予約サイトには表示されません。", platePh: "なにわ 300 あ 12-34", noPlate: "ナンバー未設定",
+      plateRequired: "この車のナンバーを入力してください。", plateTaken: "そのナンバーは別の車で使われています。", modelRequired: "車種名を入力してください。",
+      modelHint: "車種名とミッションが同じ車は、1つの予約可能な車種になります。",
+      copy: "複製",
+      copyHint: "{name} から複製しました。以下の設定はすべて同じです。この車のナンバーを入力して保存してください。",
+      copyHintShort: "この設定のまま、もう1台追加します",
+      formAdd: "車両を追加", formEdit: "車両を編集", formCopy: "車両を複製", modelName: "車種名", modelPh: "トヨタ ヤリス", jpName: "日本語名", jpPh: "トヨタ ヤリス",
       cls: "クラス", transmission: "ミッション", auto: "オートマ（AT）", manual: "マニュアル（MT）", seats: "乗車人数", bags: "荷物", fuel: "燃料",
       dailyRate: "日額（円）", dailyRateHint: "料金プランの割引前の1日あたりの基本料金。", extHour: "延長料金（1時間・円）", extHourHint: "24時間単位を超えた延長1時間ごとの料金（1日料金が上限）。0の場合は1日分を請求します。", tags: "タグ", tagsHint: "カードに表示する特徴（カンマ区切り。例：人気、ETCカード）。", publishedLabel: "公開 — 予約サイトに表示する",
       saveAdd: "車両を追加", saveEdit: "変更を保存", deleteTitle: "車両を削除", deleteBody: "この車両を車両一覧から削除しますか？元に戻せません。",
@@ -310,7 +364,9 @@ export const adminDict: Record<AdminLang, AdminDict> = {
         strictOff: "オフ — 確認のチェックは必要ですが、最後まで再生しなくても確定できます。",
         acked: "安全動画の確認済み", notAcked: "安全動画は未確認", ackedFull: "安全動画を最後まで視聴済み",
       },
-      status: { pending: "保留中", confirmed: "確定", cancelled: "キャンセル", completed: "完了" },
+      status: { pending: "保留中", confirmed: "確定", cancelled: "キャンセル", completed: "完了", awaiting_payment: "支払い待ち" },
+      thPayment: "決済",
+      pay: { not_required: "店頭払い", awaiting: "支払い待ち", paid: "支払い済み", failed: "失敗", refunded: "返金済み" },
     },
     email: {
       title: "予約確定メール", hint: "お客様がご予約時に受け取るメールです。空欄にすると既定の文面が使われます。レイアウトと予約内容の表は固定です。",
@@ -367,6 +423,28 @@ export const adminDict: Record<AdminLang, AdminDict> = {
       logShow: "表示", logHide: "隠す", logEmpty: "まだ質問はありません。",
       thWhen: "日時", thQuery: "質問", thLang: "言語", thOutcome: "結果",
       outcome: { answer: "回答済み", choose: "候補を提示", topics: "回答なし", handoff: "回答なし" },
+    },
+    payments: {
+      title: "オンライン決済",
+      hint: "有効にすると、ご予約は30分間だけ車両を確保し、その間にお客様がカードでお支払いになります。予約が確定するのは、Stripeが入金を確認した時点です。",
+      toggleLabel: "事前決済 — 支払いの完了をもって予約を確定する",
+      toggleHint: "無効の場合は、これまでどおり予約後に店頭でお支払いいただきます。",
+      save: "保存", saved: "保存しました。",
+      onWarning: "有効にすると、お客様から実際に代金を受け取ります。まず予約の流れを最後までテストしてください。",
+      checking: "Stripeを確認中…",
+      ready: "サーバー側のStripe設定は完了しています。",
+      notReady: "Stripeの準備ができていません。まだ有効にしないでください。",
+      missing: "サーバーに未設定の項目: {keys}。DEPLOY.md をご確認ください。",
+    },
+    calendar: {
+      title: "車両タイムライン", sub: "ナンバー別の各車両と、貸出中の期間を表示します。",
+      today: "今日", prev: "前へ", next: "次へ", window: "表示期間", days: "{n}日間",
+      legend: "予約の状態", free: "台空き", freeOf: "{total}台中 {free}台空き", soldOut: "満車", noCars: "車両なし",
+      empty: "表示できるものがありません", emptyBody: "ナンバー付きの車両を追加すると、その貸出予定がここに表示されます。",
+      noPlate: "ナンバーなし",
+      overlap: "重複", overlapHint: "1台の車に2件の貸出が重なっています。予約サイトからは作成できないため、手動で編集された予約がないか確認してください。",
+      barUnassigned: "車両未割当",
+      tipRef: "予約番号", tipPickup: "貸出", tipReturn: "返却", tipTotal: "合計", tipEmail: "メール",
     },
     tr: {
       heading: "翻訳", hint: "お客様向けサイトに表示されます。空欄の言語は上の入力欄の文言が使われます。",

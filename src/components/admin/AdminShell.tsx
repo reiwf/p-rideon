@@ -11,6 +11,7 @@ import { Button, inputCls } from "./ui";
 const nav = [
   { href: "/admin", key: "dashboard", icon: "M3 12 12 4l9 8M5 10v10h14V10" },
   { href: "/admin/vehicles", key: "vehicles", icon: "M5 16h14M6 16l1-5h10l1 5M8 11l1-3h6l1 3M7 19v-3M17 19v-3" },
+  { href: "/admin/calendar", key: "calendar", icon: "M7 4v3M17 4v3M4 9h16M5 6h14v14H5zM8 13h3M13 17h4" },
   { href: "/admin/plans", key: "ratePlans", icon: "M4 7h16M4 12h16M4 17h10" },
   { href: "/admin/insurance", key: "insurance", icon: "M12 3 5 6v6c0 4 3 6.7 7 8.5 4-1.8 7-4.5 7-8.5V6l-7-3Z" },
   { href: "/admin/branches", key: "branches", icon: "M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11ZM12 7.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Z" },

@@ -41,7 +41,15 @@ export type Dict = {
     note: string;
   };
   trust: { support: string; supportD: string; cancel: string; cancelD: string; insure: string; insureD: string; etc: string; etcD: string };
-  fleet: { eyebrow: string; title: string; sub: string; from: string; perDay: string; seats: string; bags: string; transmission: string; fuelLabel: string; reserve: string; all: string; filterAll: string };
+  fleet: {
+    eyebrow: string; title: string; sub: string; from: string; perDay: string; seats: string; bags: string;
+    transmission: string; fuelLabel: string; reserve: string; all: string; filterAll: string;
+    /** "{n}" = cars of this model still free for the chosen dates */
+    available: string;
+    lastOne: string;
+    fullyBooked: string;
+    fullyBookedHint: string;
+  };
   classes: Record<string, string>;
   steps: { eyebrow: string; title: string; items: { t: string; d: string }[] };
   dest: { eyebrow: string; title: string; sub: string; fromOsaka: string; drive: string; places: Record<"kyoto" | "nara" | "kobe" | "wakayama", string> };
@@ -64,9 +72,9 @@ export type Dict = {
     steps: { trip: string; details: string; confirm: string };
     back: string; next: string; reserve: string; reserving: string;
     editTrip: string; protection: string; extrasTitle: string; included: string; perDay: string; vehicleInfo: string; viewVehicle: string;
-    summary: { heading: string; vehicle: string; pickup: string; dropoff: string; duration: string; days: string; hours: string; extension: string; base: string; discount: string; protection: string; total: string; payAtPickup: string };
+    summary: { heading: string; vehicle: string; pickup: string; dropoff: string; duration: string; days: string; hours: string; extension: string; base: string; discount: string; protection: string; total: string; payAtPickup: string; payNow: string };
     form: { heading: string; fullName: string; email: string; phone: string; license: string; licensePh: string; flight: string; flightHint: string; notes: string; notesHint: string; required: string; optional: string };
-confirm: { heading: string; note: string };
+confirm: { heading: string; note: string; notePaid: string };
     video: {
       heading: string; intro: string; watchFirst: string;
       ack: string; watched: string; unavailable: string;
@@ -79,6 +87,23 @@ confirm: { heading: string; note: string };
     success: { heading: string; refLabel: string; thanks: string; payInfo: string; bring: string; home: string };
     notFound: { heading: string; body: string; back: string };
     errorCreate: string;
+    /** every car of this model is taken for the chosen dates */
+    soldOut: { heading: string; body: string };
+    errorFullyBooked: string;
+    errorRateLimited: string;
+    errorTooLong: string;
+    errorTooFarAhead: string;
+    errorInvalidEmail: string;
+    errorTooManyHeld: string;
+    /** shown only when Pay-before-book is switched on */
+    payment: {
+      dueNow: string; payButton: string; redirecting: string; startFailed: string;
+      holdNote: string;
+      paidHeading: string; paidBody: string;
+      pendingHeading: string; pendingBody: string;
+      cancelledHeading: string; cancelledBody: string;
+      retry: string; refLabel: string; home: string;
+    };
   };
 };
 
@@ -110,7 +135,7 @@ export const dict: Record<Locale, Dict> = {
       insure: "Full insurance", insureD: "CDW included, zero-excess available",
       etc: "ETC toll card", etcD: "Tap through every expressway gate",
     },
-    fleet: { eyebrow: "The fleet", title: "Pick the car for your route", sub: "Every car is automatic, non-smoking, and fitted with English navigation and an ETC toll card.", from: "from", perDay: "/ day", seats: "seats", bags: "bags", transmission: "Transmission", fuelLabel: "Fuel", reserve: "Reserve", all: "View full fleet", filterAll: "All" },
+    fleet: { eyebrow: "The fleet", title: "Pick the car for your route", sub: "Every car is automatic, non-smoking, and fitted with English navigation and an ETC toll card.", from: "from", perDay: "/ day", seats: "seats", bags: "bags", transmission: "Transmission", fuelLabel: "Fuel", reserve: "Reserve", all: "View full fleet", filterAll: "All" , available: "{n} left", lastOne: "Last one", fullyBooked: "Fully booked", fullyBookedHint: "Try other dates" },
     classes: { kei: "Kei — micro", compact: "Compact", hybrid: "Hybrid", suv: "SUV", minivan: "Minivan", premium: "Premium" },
     steps: {
       eyebrow: "How it works",
@@ -139,9 +164,9 @@ export const dict: Record<Locale, Dict> = {
       steps: { trip: "Trip & protection", details: "Your details", confirm: "Confirm" },
       back: "Back", next: "Continue", reserve: "Confirm reservation", reserving: "Reserving…",
       editTrip: "Pick-up & return", protection: "Choose your protection", extrasTitle: "Options & extras", included: "Included", perDay: "/ day", vehicleInfo: "Vehicle details", viewVehicle: "Details",
-      summary: { heading: "Summary", vehicle: "Vehicle", pickup: "Pick-up", dropoff: "Return", duration: "Duration", days: "days", hours: "h", extension: "Extension", base: "Base rate", discount: "Plan discount", protection: "Protection", total: "Estimated total", payAtPickup: "Pay at pick-up" },
+      summary: { heading: "Summary", vehicle: "Vehicle", pickup: "Pick-up", dropoff: "Return", duration: "Duration", days: "days", hours: "h", extension: "Extension", base: "Base rate", discount: "Plan discount", protection: "Protection", total: "Estimated total", payAtPickup: "Pay at pick-up", payNow: "Pay now" },
       form: { heading: "Driver details", fullName: "Full name", email: "Email", phone: "Phone", license: "Driver's licence issuing country/region", licensePh: "Select country/region", flight: "Flight no.", flightHint: "Optional — helps us if your flight is delayed", notes: "Notes", notesHint: "Optional — child seat, special requests…", required: "Please fill in this field.", optional: "optional" },
-      confirm: { heading: "Review & confirm", note: "No payment now — you pay at the counter on pick-up. Bring your passport and a valid driving licence (with an International Driving Permit if required)." },
+      confirm: { heading: "Review & confirm", note: "No payment now — you pay at the counter on pick-up. Bring your passport and a valid driving licence (with an International Driving Permit if required).", notePaid: "Payment is taken now to confirm your reservation. Bring your passport and a valid driving licence (with an International Driving Permit if required) when you collect the car." },
       video: {
         heading: "Safety briefing",
         intro: "Please watch this short video before confirming. It covers Japanese road rules and the precautions that matter most on your route.",
@@ -170,6 +195,22 @@ export const dict: Record<Locale, Dict> = {
       success: { heading: "Reservation confirmed", refLabel: "Booking reference", thanks: "Thank you! Your car is reserved.", payInfo: "Pay at the counter when you collect the car.", bring: "Bring your passport and driving licence (plus IDP if required).", home: "Back to home" },
       notFound: { heading: "Car not found", body: "We couldn't find that vehicle. It may no longer be available.", back: "Back to all cars" },
       errorCreate: "Something went wrong creating your reservation. Please try again.",
+      soldOut: { heading: "No car of this model is free", body: "Every one of these cars is already booked for the dates you chose. Pick different dates, or choose another car from the fleet." },
+      errorFullyBooked: "That car was just taken for these dates. Please choose different dates or another car.",
+      errorRateLimited: "Too many reservation attempts from this connection. Please wait a few minutes and try again.",
+      errorTooLong: "Reservations can run for up to 90 days. Please shorten your trip or contact us directly.",
+      errorTooFarAhead: "Reservations open about 13 months ahead. Please choose an earlier pick-up date.",
+      errorInvalidEmail: "Please check your email address and try again.",
+      errorTooManyHeld: "You already have several reservations open. Please complete or cancel one first, or contact us and we will arrange it.",
+      payment: {
+        dueNow: "Due now", payButton: "Pay and reserve", redirecting: "Taking you to secure payment…",
+        startFailed: "We could not open the payment page. Your car is held for a short while — please try again.",
+        holdNote: "We hold your car for 30 minutes while you pay.",
+        paidHeading: "Payment received", paidBody: "Your reservation is confirmed. We have emailed your confirmation.",
+        pendingHeading: "Confirming your payment", pendingBody: "This usually takes a few seconds. Refresh this page in a moment, and we will email you once it is done.",
+        cancelledHeading: "Payment not completed", cancelledBody: "Nothing has been charged. Your car is held for a short while, so you can still finish paying.",
+        retry: "Try payment again", refLabel: "Your reference", home: "Back to home",
+      },
     },
   },
 
@@ -200,7 +241,7 @@ export const dict: Record<Locale, Dict> = {
       insure: "保険完備", insureD: "CDW標準、免責ゼロも選べる",
       etc: "ETCカード", etcD: "高速ゲートをそのまま通過",
     },
-    fleet: { eyebrow: "車種一覧", title: "あなたのルートに合う一台を", sub: "全車AT・禁煙、英語ナビとETCカードを搭載。", from: "", perDay: "/ 日", seats: "人乗り", bags: "荷物", transmission: "ミッション", fuelLabel: "燃料", reserve: "予約", all: "すべての車種を見る", filterAll: "すべて" },
+    fleet: { eyebrow: "車種一覧", title: "あなたのルートに合う一台を", sub: "全車AT・禁煙、英語ナビとETCカードを搭載。", from: "", perDay: "/ 日", seats: "人乗り", bags: "荷物", transmission: "ミッション", fuelLabel: "燃料", reserve: "予約", all: "すべての車種を見る", filterAll: "すべて" , available: "残り{n}台", lastOne: "残り1台", fullyBooked: "満車", fullyBookedHint: "別の日程をお試しください" },
     classes: { kei: "軽自動車", compact: "コンパクト", hybrid: "ハイブリッド", suv: "SUV", minivan: "ミニバン", premium: "プレミアム" },
     steps: {
       eyebrow: "ご利用の流れ",
@@ -229,9 +270,9 @@ export const dict: Record<Locale, Dict> = {
       steps: { trip: "プランと補償", details: "お客様情報", confirm: "確認" },
       back: "戻る", next: "次へ", reserve: "予約を確定", reserving: "予約中…",
       editTrip: "出発・返却", protection: "補償を選ぶ", extrasTitle: "オプション", included: "標準装備", perDay: "/ 日", vehicleInfo: "車両の詳細", viewVehicle: "詳細",
-      summary: { heading: "ご予約内容", vehicle: "車種", pickup: "出発", dropoff: "返却", duration: "期間", days: "日間", hours: "時間", extension: "延長", base: "基本料金", discount: "割引", protection: "補償", total: "合計（目安）", payAtPickup: "現地払い" },
+      summary: { heading: "ご予約内容", vehicle: "車種", pickup: "出発", dropoff: "返却", duration: "期間", days: "日間", hours: "時間", extension: "延長", base: "基本料金", discount: "割引", protection: "補償", total: "合計（目安）", payAtPickup: "現地払い", payNow: "オンライン決済" },
       form: { heading: "運転者情報", fullName: "氏名", email: "メール", phone: "電話番号", license: "運転免許証の発行国・地域", licensePh: "国・地域を選択", flight: "便名", flightHint: "任意 — 遅延時に対応しやすくなります", notes: "備考", notesHint: "任意 — チャイルドシート、ご要望など", required: "この項目を入力してください。", optional: "任意" },
-      confirm: { heading: "内容の確認", note: "今のお支払いはありません。お受け取り時にカウンターでお支払いください。パスポートと有効な運転免許証（必要に応じて国際運転免許証）をお持ちください。" },
+      confirm: { heading: "内容の確認", note: "今のお支払いはありません。お受け取り時にカウンターでお支払いください。パスポートと有効な運転免許証（必要に応じて国際運転免許証）をお持ちください。", notePaid: "ご予約を確定するため、この後オンラインでお支払いいただきます。お受け取り時には、パスポートと有効な運転免許証（必要に応じて国際運転免許証）をお持ちください。" },
       video: {
         heading: "安全のご案内",
         intro: "ご確定の前に、この短い動画をご覧ください。日本の交通ルールと、運転時にとくに注意していただきたい点をご説明します。",
@@ -260,6 +301,22 @@ export const dict: Record<Locale, Dict> = {
       success: { heading: "予約が確定しました", refLabel: "予約番号", thanks: "ありがとうございます。お車を確保しました。", payInfo: "お受け取り時にカウンターでお支払いください。", bring: "パスポートと運転免許証（必要に応じてIDP）をお持ちください。", home: "ホームに戻る" },
       notFound: { heading: "車が見つかりません", body: "この車両が見つかりませんでした。現在ご利用いただけない可能性があります。", back: "車種一覧に戻る" },
       errorCreate: "予約の作成中に問題が発生しました。もう一度お試しください。",
+      soldOut: { heading: "この車種に空きがありません", body: "ご指定の日程は、この車種のすべての車が予約済みです。日程を変更するか、他の車種をお選びください。" },
+      errorFullyBooked: "ご指定の日程は、ちょうど満車になりました。日程を変更するか、他の車種をお選びください。",
+      errorRateLimited: "この接続からの予約試行が多すぎます。数分おいてから、もう一度お試しください。",
+      errorTooLong: "ご予約は最長90日間です。期間を短くするか、直接お問い合わせください。",
+      errorTooFarAhead: "ご予約は約13か月先まで承っております。出発日を近い日付でお選びください。",
+      errorInvalidEmail: "メールアドレスをご確認のうえ、もう一度お試しください。",
+      errorTooManyHeld: "すでに複数のご予約をお持ちです。いずれかを完了またはキャンセルいただくか、当社までご連絡ください。",
+      payment: {
+        dueNow: "お支払い額", payButton: "お支払いして予約する", redirecting: "安全な決済ページへ移動しています…",
+        startFailed: "決済ページを開けませんでした。お車は少しの間お取り置きしています。もう一度お試しください。",
+        holdNote: "お支払いの間、30分間お車をお取り置きします。",
+        paidHeading: "お支払いを受け付けました", paidBody: "ご予約が確定しました。確認メールをお送りしました。",
+        pendingHeading: "お支払いを確認しています", pendingBody: "通常は数秒で完了します。少し経ってからこのページを再読み込みしてください。完了後にメールでお知らせします。",
+        cancelledHeading: "お支払いが完了していません", cancelledBody: "請求は発生していません。お車は少しの間お取り置きしていますので、続けてお支払いいただけます。",
+        retry: "もう一度お支払いする", refLabel: "予約番号", home: "ホームに戻る",
+      },
     },
   },
 
@@ -290,7 +347,7 @@ export const dict: Record<Locale, Dict> = {
       insure: "保险齐全", insureD: "含CDW，可选零自付额",
       etc: "ETC通行卡", etcD: "高速收费站一刷即过",
     },
-    fleet: { eyebrow: "车队", title: "为你的路线选一辆车", sub: "全部为自动挡、无烟车，配备英文导航与ETC通行卡。", from: "起", perDay: "/ 天", seats: "座", bags: "行李", transmission: "变速箱", fuelLabel: "燃料", reserve: "预订", all: "查看全部车型", filterAll: "全部" },
+    fleet: { eyebrow: "车队", title: "为你的路线选一辆车", sub: "全部为自动挡、无烟车，配备英文导航与ETC通行卡。", from: "起", perDay: "/ 天", seats: "座", bags: "行李", transmission: "变速箱", fuelLabel: "燃料", reserve: "预订", all: "查看全部车型", filterAll: "全部" , available: "仅剩{n}辆", lastOne: "仅剩1辆", fullyBooked: "已订满", fullyBookedHint: "请尝试其他日期" },
     classes: { kei: "K-Car 微型", compact: "紧凑型", hybrid: "混动", suv: "SUV", minivan: "MPV", premium: "豪华" },
     steps: {
       eyebrow: "租车流程",
@@ -319,9 +376,9 @@ export const dict: Record<Locale, Dict> = {
       steps: { trip: "行程与保障", details: "您的信息", confirm: "确认" },
       back: "返回", next: "继续", reserve: "确认预订", reserving: "预订中…",
       editTrip: "取车与还车", protection: "选择保障", extrasTitle: "附加选项", included: "已包含", perDay: "/ 天", vehicleInfo: "车辆详情", viewVehicle: "详情",
-      summary: { heading: "预订摘要", vehicle: "车型", pickup: "取车", dropoff: "还车", duration: "时长", days: "天", hours: "小时", extension: "延长", base: "基本租金", discount: "套餐折扣", protection: "保障", total: "预计总额", payAtPickup: "到店付款" },
+      summary: { heading: "预订摘要", vehicle: "车型", pickup: "取车", dropoff: "还车", duration: "时长", days: "天", hours: "小时", extension: "延长", base: "基本租金", discount: "套餐折扣", protection: "保障", total: "预计总额", payAtPickup: "到店付款", payNow: "在线支付" },
       form: { heading: "驾驶人信息", fullName: "姓名", email: "邮箱", phone: "电话", license: "驾照签发国家/地区", licensePh: "选择国家/地区", flight: "航班号", flightHint: "选填 — 航班延误时便于我们安排", notes: "备注", notesHint: "选填 — 儿童座椅、特殊要求…", required: "请填写此项。", optional: "选填" },
-      confirm: { heading: "核对并确认", note: "现在无需付款 — 取车时在柜台付款。请携带护照和有效驾照（如需要请带国际驾照）。" },
+      confirm: { heading: "核对并确认", note: "现在无需付款 — 取车时在柜台付款。请携带护照和有效驾照（如需要请带国际驾照）。", notePaid: "为确认您的预订，接下来将进行在线付款。取车时请携带护照和有效驾照（如需要请带国际驾照）。" },
       video: {
         heading: "安全须知",
         intro: "确认预订前请观看这段简短的视频。内容涵盖日本的交通规则以及行车时最需要注意的事项。",
@@ -350,6 +407,22 @@ export const dict: Record<Locale, Dict> = {
       success: { heading: "预订已确认", refLabel: "预订编号", thanks: "谢谢！您的车辆已预留。", payInfo: "取车时在柜台付款。", bring: "请携带护照和驾照（如需要请带国际驾照）。", home: "返回首页" },
       notFound: { heading: "未找到车辆", body: "未能找到该车辆，可能已不可用。", back: "返回全部车型" },
       errorCreate: "创建预订时出错，请重试。",
+      soldOut: { heading: "该车型已无可用车辆", body: "您所选日期内，该车型的车辆均已被预订。请更改日期，或从车队中选择其他车型。" },
+      errorFullyBooked: "该车型在您所选日期刚刚订满。请更改日期或选择其他车型。",
+      errorRateLimited: "此网络的预订尝试次数过多。请稍候几分钟后重试。",
+      errorTooLong: "预订最长为90天。请缩短租期或直接与我们联系。",
+      errorTooFarAhead: "预订可提前约13个月。请选择更早的取车日期。",
+      errorInvalidEmail: "请检查您的电子邮件地址后重试。",
+      errorTooManyHeld: "您已有多笔预订。请先完成或取消其中一笔，或与我们联系安排。",
+      payment: {
+        dueNow: "应付金额", payButton: "付款并预订", redirecting: "正在前往安全支付页面…",
+        startFailed: "无法打开支付页面。我们会为您保留车辆一小段时间，请重试。",
+        holdNote: "付款期间我们将为您保留车辆30分钟。",
+        paidHeading: "已收到付款", paidBody: "您的预订已确认，确认邮件已发送。",
+        pendingHeading: "正在确认您的付款", pendingBody: "通常只需几秒。请稍后刷新本页，完成后我们会邮件通知您。",
+        cancelledHeading: "付款未完成", cancelledBody: "未产生任何扣款。车辆仍为您保留一小段时间，您可以继续完成付款。",
+        retry: "重新付款", refLabel: "您的预订号", home: "返回首页",
+      },
     },
   },
 
@@ -380,7 +453,7 @@ export const dict: Record<Locale, Dict> = {
       insure: "보험 완비", insureD: "CDW 포함, 자기부담금 0 선택 가능",
       etc: "ETC 통행 카드", etcD: "고속도로 게이트를 그대로 통과",
     },
-    fleet: { eyebrow: "차량", title: "당신의 경로에 맞는 차를", sub: "전 차량 자동·금연이며 영어 내비와 ETC 카드를 갖췄습니다.", from: "부터", perDay: "/ 일", seats: "인승", bags: "수하물", transmission: "변속기", fuelLabel: "연료", reserve: "예약", all: "전체 차종 보기", filterAll: "전체" },
+    fleet: { eyebrow: "차량", title: "당신의 경로에 맞는 차를", sub: "전 차량 자동·금연이며 영어 내비와 ETC 카드를 갖췄습니다.", from: "부터", perDay: "/ 일", seats: "인승", bags: "수하물", transmission: "변속기", fuelLabel: "연료", reserve: "예약", all: "전체 차종 보기", filterAll: "전체" , available: "{n}대 남음", lastOne: "1대 남음", fullyBooked: "예약 마감", fullyBookedHint: "다른 날짜를 선택해 보세요" },
     classes: { kei: "경차", compact: "콤팩트", hybrid: "하이브리드", suv: "SUV", minivan: "미니밴", premium: "프리미엄" },
     steps: {
       eyebrow: "이용 방법",
@@ -409,9 +482,9 @@ export const dict: Record<Locale, Dict> = {
       steps: { trip: "일정 및 보장", details: "고객 정보", confirm: "확인" },
       back: "뒤로", next: "계속", reserve: "예약 확정", reserving: "예약 중…",
       editTrip: "픽업 · 반납", protection: "보장 선택", extrasTitle: "옵션 추가", included: "포함", perDay: "/ 일", vehicleInfo: "차량 정보", viewVehicle: "상세",
-      summary: { heading: "예약 요약", vehicle: "차종", pickup: "픽업", dropoff: "반납", duration: "기간", days: "일", hours: "시간", extension: "연장", base: "기본 요금", discount: "플랜 할인", protection: "보장", total: "예상 합계", payAtPickup: "현장 결제" },
+      summary: { heading: "예약 요약", vehicle: "차종", pickup: "픽업", dropoff: "반납", duration: "기간", days: "일", hours: "시간", extension: "연장", base: "기본 요금", discount: "플랜 할인", protection: "보장", total: "예상 합계", payAtPickup: "현장 결제", payNow: "온라인 결제" },
       form: { heading: "운전자 정보", fullName: "이름", email: "이메일", phone: "전화번호", license: "운전면허 발급 국가/지역", licensePh: "국가/지역 선택", flight: "항공편", flightHint: "선택 — 항공편 지연 시 도움이 됩니다", notes: "메모", notesHint: "선택 — 카시트, 특별 요청 등", required: "이 항목을 입력해 주세요.", optional: "선택" },
-      confirm: { heading: "검토 및 확인", note: "지금은 결제하지 않습니다 — 픽업 시 카운터에서 결제합니다. 여권과 유효한 운전면허증(필요 시 국제운전면허증)을 지참하세요." },
+      confirm: { heading: "검토 및 확인", note: "지금은 결제하지 않습니다 — 픽업 시 카운터에서 결제합니다. 여권과 유효한 운전면허증(필요 시 국제운전면허증)을 지참하세요.", notePaid: "예약 확정을 위해 이어서 온라인 결제를 진행합니다. 차량 수령 시 여권과 유효한 운전면허증(필요 시 국제운전면허증)을 지참해 주세요." },
       video: {
         heading: "안전 안내",
         intro: "예약을 확정하기 전에 짧은 영상을 시청해 주세요. 일본의 교통 규칙과 주행 시 특히 유의할 점을 안내합니다.",
@@ -440,6 +513,22 @@ export const dict: Record<Locale, Dict> = {
       success: { heading: "예약이 확정되었습니다", refLabel: "예약 번호", thanks: "감사합니다! 차량이 예약되었습니다.", payInfo: "픽업 시 카운터에서 결제하세요.", bring: "여권과 운전면허증(필요 시 IDP)을 지참하세요.", home: "홈으로" },
       notFound: { heading: "차량을 찾을 수 없습니다", body: "해당 차량을 찾을 수 없습니다. 더 이상 이용할 수 없을 수 있습니다.", back: "전체 차종으로" },
       errorCreate: "예약 생성 중 문제가 발생했습니다. 다시 시도해 주세요.",
+      soldOut: { heading: "이 차종은 예약 가능한 차량이 없습니다", body: "선택하신 날짜에는 이 차종의 모든 차량이 예약되어 있습니다. 다른 날짜를 고르거나 다른 차종을 선택해 주세요." },
+      errorFullyBooked: "선택하신 날짜에 방금 마감되었습니다. 다른 날짜나 다른 차종을 선택해 주세요.",
+      errorRateLimited: "이 연결에서 예약 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+      errorTooLong: "예약은 최대 90일까지 가능합니다. 기간을 줄이시거나 직접 문의해 주세요.",
+      errorTooFarAhead: "예약은 약 13개월 전부터 가능합니다. 더 이른 출발일을 선택해 주세요.",
+      errorInvalidEmail: "이메일 주소를 확인한 후 다시 시도해 주세요.",
+      errorTooManyHeld: "이미 여러 건의 예약이 있습니다. 먼저 하나를 완료하거나 취소하시거나 저희에게 문의해 주세요.",
+      payment: {
+        dueNow: "결제 금액", payButton: "결제하고 예약하기", redirecting: "안전한 결제 페이지로 이동 중입니다…",
+        startFailed: "결제 페이지를 열지 못했습니다. 차량은 잠시 확보해 두었으니 다시 시도해 주세요.",
+        holdNote: "결제하시는 동안 30분간 차량을 확보해 둡니다.",
+        paidHeading: "결제가 완료되었습니다", paidBody: "예약이 확정되었습니다. 확인 메일을 보내 드렸습니다.",
+        pendingHeading: "결제를 확인하고 있습니다", pendingBody: "보통 몇 초면 완료됩니다. 잠시 후 페이지를 새로고침해 주세요. 완료되면 메일로 알려 드립니다.",
+        cancelledHeading: "결제가 완료되지 않았습니다", cancelledBody: "청구된 금액은 없습니다. 차량은 잠시 확보되어 있으니 계속 결제하실 수 있습니다.",
+        retry: "다시 결제하기", refLabel: "예약 번호", home: "홈으로",
+      },
     },
   },
 };

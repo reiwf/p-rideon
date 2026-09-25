@@ -15,6 +15,11 @@ function fmt(d: string | null) {
 
 const statusTone: Record<string, "ok" | "off" | "neutral" | "star"> = {
   pending: "star", confirmed: "ok", cancelled: "off", completed: "neutral",
+  awaiting_payment: "star",
+};
+
+const payTone: Record<string, "ok" | "off" | "neutral" | "star"> = {
+  paid: "ok", awaiting: "star", failed: "off", refunded: "neutral", not_required: "neutral",
 };
 
 /** Staff addresses that get an email on every new booking (car_settings). */
@@ -111,6 +116,7 @@ export default function BookingsPage() {
                 <th className="hidden px-4 py-3 font-semibold xl:table-cell">{t.bookings.extras}</th>
                 <th className="hidden px-4 py-3 font-semibold lg:table-cell">{t.bookings.thPickup}</th>
                 <th className="px-4 py-3 text-right font-semibold">{t.bookings.thTotal}</th>
+                <th className="hidden px-4 py-3 font-semibold sm:table-cell">{t.bookings.thPayment}</th>
                 <th className="px-4 py-3 font-semibold">{t.common.status}</th>
               </tr>
             </thead>
@@ -139,6 +145,11 @@ export default function BookingsPage() {
                   </td>
                   <td className="hidden px-4 py-3 text-stone lg:table-cell">{fmt(b.pickupAt)}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums text-ink">{yen(b.estimatedTotal)}</td>
+                  <td className="hidden px-4 py-3 sm:table-cell">
+                    <Badge tone={payTone[b.paymentStatus] ?? "neutral"}>
+                      {(t.bookings.pay as Record<string, string>)[b.paymentStatus] ?? b.paymentStatus}
+                    </Badge>
+                  </td>
                   <td className="px-4 py-3"><Badge tone={statusTone[b.status] ?? "neutral"}>{statusLabel(b.status)}</Badge></td>
                 </tr>
               ))}

@@ -20,6 +20,8 @@ import { type ContentI18n } from "./i18nContent";
 
 export type AdminVehicle = {
   id: string; // "" = new (DB generates the uuid)
+  /** licence plate of this physical car — staff-only, never sent to the site */
+  plateNumber: string;
   name: string;
   jp: string;
   cls: VehicleClass;
@@ -32,6 +34,8 @@ pricePerDay: number;
   tags: string[];
   hue: string;
   active: boolean;
+  /** position in the console list; a copy inherits its source's place */
+  sort: number;
   i18n: ContentI18n;
   images: string[];
 };
@@ -102,7 +106,10 @@ export type FaqQuery = {
 export type Booking = {
   id: string;
   reference: string;
+  /** the physical car this rental occupies (null only for legacy rows) */
+  vehicleId: string | null;
   vehicleName: string;
+  vehiclePlate: string;
   pickupLocation: string;
   pickupAt: string | null;
   returnAt: string | null;
@@ -111,6 +118,9 @@ export type Booking = {
   customerPhone: string;
   estimatedTotal: number;
   status: string;
+  /** not_required | awaiting | paid | failed | refunded */
+  paymentStatus: string;
+  paidAt: string | null;
   extras: DbBookingExtra[];
   licenseCountry: string;
   /** set when the guest acknowledged the safety video at booking time */
@@ -143,13 +153,13 @@ export const classHue: Record<VehicleClass, string> = {
 
 // ---- mappers ----
 const vFromDb = (r: DbVehicle): AdminVehicle => ({
-  id: r.id, name: r.name, jp: r.jp, cls: r.cls as VehicleClass, seats: r.seats, bags: r.bags,
+  id: r.id, plateNumber: r.plate_number ?? "", name: r.name, jp: r.jp, cls: r.cls as VehicleClass, seats: r.seats, bags: r.bags,
   transmission: r.transmission, fuel: r.fuel, pricePerDay: r.price_per_day, extensionPerHour: r.extension_per_hour ?? 0, tags: r.tags ?? [],
-  hue: r.hue, active: r.active, i18n: r.i18n ?? {}, images: r.images ?? [],
+  hue: r.hue, active: r.active, sort: r.sort ?? 0, i18n: r.i18n ?? {}, images: r.images ?? [],
 });
 const vToDb = (v: AdminVehicle) => ({
-  name: v.name, jp: v.jp, cls: v.cls, seats: v.seats, bags: v.bags, transmission: v.transmission,
-  fuel: v.fuel, price_per_day: v.pricePerDay, extension_per_hour: v.extensionPerHour, tags: v.tags, hue: v.hue, active: v.active, i18n: v.i18n ?? {}, images: v.images ?? [],
+  plate_number: v.plateNumber.trim(), name: v.name, jp: v.jp, cls: v.cls, seats: v.seats, bags: v.bags, transmission: v.transmission,
+  fuel: v.fuel, price_per_day: v.pricePerDay, extension_per_hour: v.extensionPerHour, tags: v.tags, hue: v.hue, active: v.active, sort: v.sort, i18n: v.i18n ?? {}, images: v.images ?? [],
 });
 const pFromDb = (r: DbRatePlan): RatePlan => ({
   id: r.id, name: r.name, description: r.description, minDays: r.min_days, discountPct: r.discount_pct, active: r.active, i18n: r.i18n ?? {},
@@ -225,12 +235,12 @@ export function useAdminStore(): Ctx {
 
   const refresh = useCallback(async () => {
     const [veh, plans, ins, branches, extras, books, faqs, faqQueries] = await Promise.all([
-      supabase.from("car_vehicles").select("*").order("sort", { ascending: true }),
+      supabase.from("car_vehicles").select("*").order("sort", { ascending: true }).order("created_at", { ascending: true }),
       supabase.from("car_rate_plans").select("*").order("created_at", { ascending: true }),
       supabase.from("car_insurances").select("*").order("sort", { ascending: true }),
 supabase.from("car_branches").select("*").order("sort", { ascending: true }),
       supabase.from("car_extras").select("*").order("sort", { ascending: true }),
-      supabase.from("car_bookings").select("*, car_vehicles(name)").order("created_at", { ascending: false }),
+      supabase.from("car_bookings").select("*, car_vehicles(name,plate_number)").order("created_at", { ascending: false }),
       supabase.from("car_faqs").select("*").order("sort", { ascending: true }),
       // newest first, capped: this is a review list, not an archive
       supabase.from("car_faq_queries").select("*").order("created_at", { ascending: false }).limit(200),
@@ -369,12 +379,16 @@ type RawBooking = {
   return_at: string | null; customer_name: string | null; customer_email: string | null;
   customer_phone: string | null; estimated_total: number; status: string; created_at: string; extras: DbBookingExtra[] | null; license_country: string | null;
   safety_video_ack_at: string | null; safety_video_watched: boolean | null;
-  car_vehicles: { name: string } | null;
+  payment_status: string | null; paid_at: string | null;
+  vehicle_id: string | null;
+  car_vehicles: { name: string; plate_number: string | null } | null;
 };
 const bFromDb = (r: RawBooking): Booking => ({
-  id: r.id, reference: r.reference, vehicleName: r.car_vehicles?.name ?? "—",
+  id: r.id, reference: r.reference, vehicleId: r.vehicle_id,
+  vehicleName: r.car_vehicles?.name ?? "—", vehiclePlate: r.car_vehicles?.plate_number ?? "",
   pickupLocation: r.pickup_location ?? "", pickupAt: r.pickup_at, returnAt: r.return_at,
 customerName: r.customer_name ?? "", customerEmail: r.customer_email ?? "", customerPhone: r.customer_phone ?? "",
-  estimatedTotal: r.estimated_total, status: r.status, extras: r.extras ?? [], licenseCountry: r.license_country ?? "",
+  estimatedTotal: r.estimated_total, status: r.status,
+  paymentStatus: r.payment_status ?? "not_required", paidAt: r.paid_at, extras: r.extras ?? [], licenseCountry: r.license_country ?? "",
   safetyVideoAckAt: r.safety_video_ack_at, safetyVideoWatched: Boolean(r.safety_video_watched), createdAt: r.created_at,
 });

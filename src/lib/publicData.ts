@@ -49,7 +49,11 @@ export async function fetchPublicVehicles(): Promise<Vehicle[]> {
       .from("car_vehicles")
       .select(VEHICLE_COLUMNS)
       .eq("active", true)
-      .order("sort", { ascending: true });
+      // the tie-break matters: cars sharing a model and transmission are one
+      // type, and the first of them supplies the photos, price and reserve
+      // link, so that choice must not wobble between requests
+      .order("sort", { ascending: true })
+      .order("created_at", { ascending: true });
 
     if (error || !data) return [];
     return (data as VehicleRow[]).map(mapVehicle);
@@ -106,6 +110,46 @@ export async function fetchSafetyVideo(): Promise<SafetyVideo | null> {
   }
 }
 
+/** Whether a reservation must be paid before it is confirmed
+    (`car_settings` → `payments`). Defaults to OFF: a misread setting must
+    never silently start demanding money, nor silently stop. */
+export async function fetchPayBeforeBook(): Promise<boolean> {
+  const client = serverClient();
+  if (!client) return false;
+  try {
+    const { data, error } = await client.from("car_settings").select("value").eq("key", "payments").maybeSingle();
+    if (error || !data) return false;
+    return (data.value as { payBeforeBook?: boolean } | null)?.payBeforeBook === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Has this reservation been paid? Needs BOTH the booking id and its
+    reference, so only the guest who just booked can ask. Returns "unknown"
+    rather than throwing: the page must still render something useful. */
+export async function fetchPaymentState(
+  bookingId: string,
+  reference: string,
+): Promise<"paid" | "pending" | "unknown"> {
+  const client = serverClient();
+  if (!client) return "unknown";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId)) return "unknown";
+  if (!/^KD-[0-9]{6}-[A-Z0-9]{4}$/.test(reference)) return "unknown";
+  try {
+    const { data, error } = await client.rpc("car_begin_payment", {
+      p_booking_id: bookingId,
+      p_reference: reference,
+    });
+    if (error || !data) return "unknown";
+    const row = (data as { already_paid: boolean }[])[0];
+    if (!row) return "unknown";
+    return row.already_paid ? "paid" : "pending";
+  } catch {
+    return "unknown";
+  }
+}
+
 /** Data needed for the booking flow: the chosen (active) vehicle plus the
    current insurance options, rate plans, branches and extras. vehicle=null
    means "not found"; query failures THROW so the route errors instead of
@@ -119,6 +163,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
   extras: BookingExtra[];
   safetyVideo: SafetyVideo | null;
   settings: SiteSettings;
+  payBeforeBook: boolean;
 }> {
   const client = serverClient();
   if (!client || !vehicleId) {
@@ -126,7 +171,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
       vehicle: fallbackVehicles.find((v) => v.id === vehicleId) ?? null,
       insurances: [], ratePlans: [], branches: fallbackBranches,
       branchInfo: fallbackBranches.map((name) => ({ name, address: "" })), extras: [],
-      safetyVideo: null, settings: DEFAULT_SETTINGS,
+      safetyVideo: null, settings: DEFAULT_SETTINGS, payBeforeBook: false,
     };
   }
 
@@ -134,7 +179,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
   // "not found" rather than letting the uuid cast error the whole query
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId);
 
-  const [vRes, iRes, pRes, bRes, xRes, safetyVideo, settings] = await Promise.all([
+  const [vRes, iRes, pRes, bRes, xRes, safetyVideo, settings, payBeforeBook] = await Promise.all([
     isUuid
       ? client.from("car_vehicles").select(VEHICLE_COLUMNS).eq("id", vehicleId).eq("active", true).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -144,6 +189,7 @@ export async function fetchBookingData(vehicleId: string): Promise<{
     client.from("car_extras").select("id,name,description,price_per_day,max_qty,i18n").eq("active", true).order("sort", { ascending: true }),
     fetchSafetyVideo(),
     fetchSiteSettings(),
+    fetchPayBeforeBook(),
   ]);
 
   const firstErr = vRes.error || iRes.error || pRes.error || bRes.error || xRes.error;
@@ -173,5 +219,6 @@ export async function fetchBookingData(vehicleId: string): Promise<{
     extras,
     safetyVideo,
     settings,
+    payBeforeBook,
   };
 }

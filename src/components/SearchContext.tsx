@@ -4,6 +4,9 @@ import { createContext, useContext, useState } from "react";
 import { addDaysISO } from "@/lib/booking";
 import { DEFAULT_TIMES } from "@/lib/siteSettings";
 
+/** Kept in step with the CAR_TOO_LONG guard in car_create_booking. */
+const MAX_RENTAL_DAYS = 90;
+
 export type SearchState = {
   location: string;
   pickupDate: string;
@@ -40,6 +43,10 @@ export function SearchProvider({
       if (`${next.returnDate}T${next.returnTime}` <= `${next.pickupDate}T${next.pickupTime}`) {
         next.returnDate = addDaysISO(next.pickupDate, 1);
       }
+      // longest rental the booking function accepts — keep the search inside
+      // it so the availability lookup and the reservation agree
+      const latestReturn = addDaysISO(next.pickupDate, MAX_RENTAL_DAYS);
+      if (next.returnDate > latestReturn) next.returnDate = latestReturn;
       return next;
     });
 

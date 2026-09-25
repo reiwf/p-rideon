@@ -19,6 +19,8 @@ export const supabase = createClient(url ?? "http://localhost", key ?? "anon", {
 export type DbVehicle = {
   id: string;
   name: string;
+  /** staff-only: the physical car's licence plate (anon has no column grant) */
+  plate_number: string;
   jp: string;
   cls: string;
   seats: number;

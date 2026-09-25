@@ -22,7 +22,7 @@ export default async function BookPage({
 }) {
   const sp = await searchParams;
   const initialLocale = asLocale((await cookies()).get("kd-locale")?.value);
-  const { vehicle, insurances, ratePlans, branches, branchInfo, extras, safetyVideo, settings } = await fetchBookingData(sp.vehicle ?? "");
+  const { vehicle, insurances, ratePlans, branches, branchInfo, extras, safetyVideo, settings, payBeforeBook } = await fetchBookingData(sp.vehicle ?? "");
 
   return (
     <LanguageProvider initialLocale={initialLocale}>
@@ -38,6 +38,7 @@ export default async function BookPage({
             extras={extras}
             safetyVideo={safetyVideo}
             settings={settings}
+            payBeforeBook={payBeforeBook}
             initial={{ location: sp.pickup ?? "", from: sp.from ?? "", to: sp.to ?? "" }}
           />
         ) : (

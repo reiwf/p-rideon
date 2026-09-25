@@ -13,6 +13,7 @@ import { countryOptions } from "@/lib/countries";
 import { CompactVehicleCard, VehicleSheet } from "./VehicleSheet";
 import { SafetyVideoGate } from "./SafetyVideo";
 import { buildRentalTimes, clampToTimes, type SiteSettings } from "@/lib/siteSettings";
+import { useTypeAvailability } from "@/lib/availability";
 import {
   rentalDuration, quote, combineDateTime, splitDateTime, yen, defaultTripDates, addDaysISO,
   safetyVideoFor,
@@ -28,8 +29,12 @@ const inputBase =
 
 const label11 = "text-[0.66rem] font-medium uppercase tracking-[0.2em] text-muted";
 
+/** Longest rental the booking function will accept. Kept in step with the
+    CAR_TOO_LONG guard so the guest never hits it. */
+const MAX_RENTAL_DAYS = 90;
+
 export function BookingFlow({
-  vehicle, insurances, ratePlans, branches, branchInfo, extras, safetyVideo, settings, initial,
+  vehicle, insurances, ratePlans, branches, branchInfo, extras, safetyVideo, settings, payBeforeBook, initial,
 }: {
   vehicle: Vehicle;
   insurances: BookingInsurance[];
@@ -39,6 +44,8 @@ export function BookingFlow({
   extras: BookingExtra[];
   safetyVideo: SafetyVideo | null;
   settings: SiteSettings;
+  /** when on, the reservation only holds the car until Stripe confirms payment */
+  payBeforeBook: boolean;
   initial: { location: string; from: string; to: string };
 }) {
   const { t, locale } = useI18n();
@@ -71,6 +78,9 @@ export function BookingFlow({
     if (`${next.returnDate}T${next.returnTime}` <= `${next.pickupDate}T${next.pickupTime}`) {
       next.returnDate = addDaysISO(next.pickupDate, 1);
     }
+    // the database refuses rentals longer than this, so never offer one
+    const latestReturn = addDaysISO(next.pickupDate, MAX_RENTAL_DAYS);
+    if (next.returnDate > latestReturn) next.returnDate = latestReturn;
     setPickupDate(next.pickupDate);
     setPickupTime(next.pickupTime);
     setReturnDate(next.returnDate);
@@ -92,6 +102,7 @@ export function BookingFlow({
   const [ackedSrc, setAckedSrc] = useState<string | null>(null);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [paying, setPaying] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
 
   const selectedIns = insurances.find((i) => i.id === insuranceId) ?? null;
@@ -100,6 +111,16 @@ export function BookingFlow({
     () => extras.filter((x) => (extraQty[x.id] ?? 0) > 0).map((x) => ({ extra: x, qty: extraQty[x.id] })),
     [extras, extraQty],
   );
+  // How many cars of this model+transmission are still free for the chosen
+  // window. Null = not known yet (or the lookup failed), which never blocks:
+  // the database refuses a genuine overbooking on its own.
+  const stock = useTypeAvailability(
+    vehicle.id,
+    combineDateTime(pickupDate, pickupTime),
+    combineDateTime(returnDate, returnTime),
+  );
+  const soldOut = stock !== null && stock.available === 0;
+
   const dur = rentalDuration(`${pickupDate}T${pickupTime}`, `${returnDate}T${returnTime}`);
   const q = useMemo(
     () => quote(vehicle, dur, ratePlans, selectedIns, extraSel),
@@ -133,12 +154,14 @@ export function BookingFlow({
     window.scrollTo({ top: 0 }); // each step starts from its beginning (html has smooth scroll)
   }
   function next() {
+    if (soldOut) return;
     if (step === 1 && !detailsValid) { setTouched(true); return; }
     goToStep(Math.min(2, step + 1));
   }
   function back() { goToStep(Math.max(0, step - 1)); }
 
   async function submit() {
+    if (soldOut) { setError(t.booking.errorFullyBooked); return; }
     setSubmitting(true);
     setError("");
     const notes = [driver.flight ? `Flight: ${driver.flight}` : "", driver.notes].filter(Boolean).join(" — ");
@@ -160,9 +183,48 @@ export function BookingFlow({
       p_safety_full_play: Boolean(videoSrc) && videoWatched,
     });
     setSubmitting(false);
-    if (err) { setError(t.booking.errorCreate); return; }
-    const rows = data as { reference: string }[] | null;
-    setReference(rows?.[0]?.reference ?? "—");
+    if (err) {
+      // car_create_booking validates everything server-side and refuses with a
+      // CAR_* code; anything unrecognised stays a generic message so internals
+      // never reach the guest
+      const code = (err.message ?? "").match(/CAR_[A-Z_]+/)?.[0] ?? "";
+      const explained: Record<string, string> = {
+        CAR_FULLY_BOOKED: t.booking.errorFullyBooked,
+        CAR_RATE_LIMITED: t.booking.errorRateLimited,
+        CAR_TOO_LONG: t.booking.errorTooLong,
+        CAR_TOO_FAR_AHEAD: t.booking.errorTooFarAhead,
+        CAR_INVALID_EMAIL: t.booking.errorInvalidEmail,
+        CAR_TOO_MANY_HELD: t.booking.errorTooManyHeld,
+      };
+      setError(explained[code] ?? t.booking.errorCreate);
+      return;
+    }
+    const rows = data as { reference: string; id: string; requires_payment: boolean; amount: number }[] | null;
+    const booked = rows?.[0];
+
+    // Pay-before-book: the reservation is only HOLDING the car at this point.
+    // Stripe's webhook is what confirms it, so hand the guest over and let the
+    // /book/complete page report the outcome.
+    if (booked?.requires_payment) {
+      setPaying(true);
+      try {
+        const res = await fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingId: booked.id, reference: booked.reference, locale }),
+        });
+        const json = (await res.json()) as { url?: string; paid?: boolean };
+        if (json.url) { window.location.href = json.url; return; }
+        if (json.paid) { window.location.href = `/book/complete?ref=${encodeURIComponent(booked.reference)}&b=${booked.id}`; return; }
+      } catch {
+        // fall through to the message below
+      }
+      setPaying(false);
+      setError(t.booking.payment.startFailed);
+      return;
+    }
+
+    setReference(booked?.reference ?? "—");
     goToStep(3);
   }
 
@@ -208,6 +270,15 @@ export function BookingFlow({
 
           {step === 0 && (
             <div className="space-y-10">
+              {soldOut && (
+                <div className="rounded-[14px] border border-signal/40 bg-signal/10 p-4" role="status">
+                  <p className="text-[0.9rem] font-medium text-signal">{t.booking.soldOut.heading}</p>
+                  <p className="mt-1 text-[0.82rem] font-light leading-[1.6] text-ink/80">{t.booking.soldOut.body}</p>
+                  <Link href="/#fleet" className="mt-2 inline-block text-[0.78rem] font-medium uppercase tracking-[0.16em] text-accent hover:underline">
+                    {t.fleet.all} →
+                  </Link>
+                </div>
+              )}
               <div>
                 <h2 className={`mb-3 ${label11}`}>{t.booking.editTrip}</h2>
                 <div className="rounded-[18px] border border-hairline bg-surface">
@@ -441,7 +512,18 @@ export function BookingFlow({
                 />
               )}
 
-              <p className="rounded-[14px] border border-champagne/40 bg-champagne/10 p-4 text-[0.85rem] font-light leading-[1.6] text-ink/85">{t.booking.confirm.note}</p>
+              {payBeforeBook && (
+                <div className="rounded-[14px] border border-accent/40 bg-accent/10 p-4">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className={label11}>{t.booking.payment.dueNow}</span>
+                    <span className="tnum font-display text-[1.4rem] text-ink">{yen(q.total)}</span>
+                  </div>
+                  <p className="mt-1.5 text-[0.8rem] font-light leading-[1.5] text-muted">{t.booking.payment.holdNote}</p>
+                </div>
+              )}
+              <p className="rounded-[14px] border border-champagne/40 bg-champagne/10 p-4 text-[0.85rem] font-light leading-[1.6] text-ink/85">
+                {payBeforeBook ? t.booking.confirm.notePaid : t.booking.confirm.note}
+              </p>
               {error && <p className="rounded-[12px] border border-signal/40 bg-signal/10 px-3.5 py-2.5 text-sm text-signal">{error}</p>}
             </div>
           )}
@@ -461,18 +543,25 @@ export function BookingFlow({
               <button
                 type="button"
                 onClick={next}
-                className="flex min-h-[48px] items-center justify-center rounded-[14px] bg-accent px-8 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-accent-ink transition-[filter] hover:brightness-[1.08]"
+                disabled={soldOut}
+                className="flex min-h-[48px] items-center justify-center rounded-[14px] bg-accent px-8 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-accent-ink transition-[filter] hover:brightness-[1.08] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {t.booking.next}
+                {soldOut ? t.fleet.fullyBooked : t.booking.next}
               </button>
             ) : (
               <button
                 type="button"
                 onClick={submit}
-                disabled={submitting || !videoOk}
+                disabled={submitting || paying || !videoOk || soldOut}
                 className="flex min-h-[54px] items-center justify-center rounded-[14px] bg-accent px-8 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-accent-ink transition-[filter] hover:brightness-[1.08] disabled:opacity-60"
               >
-                {submitting ? t.booking.reserving : t.booking.reserve}
+                {paying
+                  ? t.booking.payment.redirecting
+                  : submitting
+                    ? t.booking.reserving
+                    : payBeforeBook
+                      ? t.booking.payment.payButton
+                      : t.booking.reserve}
               </button>
             )}
           </div>
@@ -483,7 +572,7 @@ export function BookingFlow({
           <div className="hidden lg:block">
             <CompactVehicleCard vehicle={vehicle} onDetails={() => setShowVehicle(true)} />
           </div>
-          <SummaryCard q={q} selectedIns={selectedIns} t={t} locale={locale} />
+          <SummaryCard q={q} selectedIns={selectedIns} t={t} locale={locale} payBeforeBook={payBeforeBook} />
         </aside>
       </div>
 
@@ -546,12 +635,13 @@ function RequiredDocs({ t, className = "" }: { t: ReturnType<typeof useI18n>["t"
 }
 
 function SummaryCard({
-  q, selectedIns, t, locale,
+  q, selectedIns, t, locale, payBeforeBook,
 }: {
   q: ReturnType<typeof quote>;
   selectedIns: BookingInsurance | null;
   t: ReturnType<typeof useI18n>["t"];
   locale: Locale;
+  payBeforeBook: boolean;
 }) {
   return (
     <div className="rounded-[18px] border border-hairline p-5">
@@ -573,7 +663,8 @@ function SummaryCard({
         <span className="tnum font-display text-[1.625rem] leading-none text-ink">{yen(q.total)}</span>
       </div>
       <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-[0.7rem] font-medium uppercase tracking-[0.12em] text-accent">
-        <Shield className="h-3.5 w-3.5" />{t.booking.summary.payAtPickup}
+        <Shield className="h-3.5 w-3.5" />
+        {payBeforeBook ? t.booking.summary.payNow : t.booking.summary.payAtPickup}
       </p>
     </div>
   );
