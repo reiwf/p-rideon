@@ -319,3 +319,60 @@ returns the email; Stripe Checkout collects the address itself.
   it on for real customers, and a local test booking occupies a real car. This
   already caused a live incident — see the deploy notes. A separate project for
   development is the real fix.
+
+### 2026-09-26 — whole-project review
+
+Code, config, git history and the live database (policies, definer functions,
+grants, buckets, advisors) reviewed end to end. Two defects fixed.
+
+**1. A payment retry could outlive the hold — `paid_no_car` by another route.**
+The retry button on `/book/complete` (also shown after cancelling out of Stripe)
+opened a fresh 30-minute session regardless of how much hold was left, so a
+retry at minute 40 of a 45-minute hold could be paid after the car went to
+someone else. The 45-vs-30 margin from 2026-09-25 only protected the FIRST
+session. Stripe will not make a session shorter than 30 minutes, so the hold now
+stretches instead:
+
+- `car_begin_payment` (now VOLATILE) extends an `awaiting_payment` hold with
+  under 35 minutes left to `now() + 45 min`, **capped at 2 hours from
+  `created_at`**, so repeated retries cannot keep a car off sale. Extending is
+  safe because a row still `awaiting_payment` means no sweep has run and the car
+  is still this booking's.
+- `/api/checkout` refuses (`409 hold_expiring`) when the hold cannot cover a
+  30-minute session — i.e. past the cap.
+
+Verified in a rolled-back transaction: 10 min left → 45; past the cap → left at
+10 and refused; 40 min left → untouched; wrong reference → nothing.
+
+**2. No security headers.** `next.config.ts` now sends, on every path:
+`X-Frame-Options: DENY` and CSP `frame-ancestors 'none'` (the admin console
+could be framed for clickjacking), `object-src 'none'`, `base-uri 'self'`,
+`form-action 'self'`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`
+(booking id + reference sit in `/book/complete`'s query string), HSTS, and a
+Permissions-Policy.
+
+**To do:** the full resource CSP (`script-src`, `connect-src`, `img-src`,
+`media-src`) ships as **`Content-Security-Policy-Report-Only`**. Cloudflare may
+inject its own scripts at the edge, which local testing cannot show. After a
+deploy, browse the public site, the booking flow and `/admin` with DevTools open;
+if the console shows no CSP report-only violations, move those directives into
+`enforcedCsp`. A new image/video host (e.g. a new R2 domain) must be added there.
+HSTS deliberately omits `includeSubDomains` until every subdomain is known to
+serve HTTPS.
+
+**Open, low:**
+
+- **`/api/staff` "promote existing account" ignores the password typed.** If the
+  email already exists (e.g. an account of the other app), it becomes admin with
+  its OWN password, and the colleague is not told. The fallback also fires for
+  any `createUser` error, not only "already registered", and does not check
+  `email_confirmed_at` (0 unconfirmed users today, so not exploitable now).
+  Should: promote only on an already-exists error with a confirmed address, and
+  say in the UI that the existing password is kept.
+- **Every staff account is all-powerful** — any one can add or remove the others
+  (except the last). One phished admin owns the console. The unused `role`
+  column is where an owner/staff split would go.
+- `listUsers({ perPage: 1000 })` in that same fallback only searches the first
+  page of users.
+- Leaked-password protection in Supabase Auth is **still off** (advisor
+  re-flagged it).

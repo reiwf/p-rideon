@@ -51,6 +51,13 @@ export async function POST(request: Request) {
   if (!booking) return Response.json({ error: "not_found" }, { status: 404 });
   if (booking.already_paid) return Response.json({ paid: true });
 
+  // A session always runs 30 minutes. car_begin_payment stretches a short hold
+  // to cover it, up to a cap; past the cap, a payment could land after the car
+  // is gone (paid_no_car), so refuse rather than take money for no car.
+  if (booking.expires_at && Date.parse(booking.expires_at) < Date.now() + 31 * 60 * 1000) {
+    return Response.json({ error: "hold_expiring" }, { status: 409 });
+  }
+
   const amount = Number(booking.amount);
   if (!Number.isInteger(amount) || amount <= 0) {
     return Response.json({ error: "nothing_to_pay" }, { status: 409 });
@@ -62,8 +69,7 @@ export async function POST(request: Request) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      // the car is held for 30 minutes; let the session lapse at the same time
-      // rather than sending a guest to a page whose hold has already gone
+      // Stripe's minimum; the hold checked above always outlasts it
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
       locale: stripeLocale(body.locale ?? "en"),
       // Stripe collects the address itself: car_begin_payment deliberately does
